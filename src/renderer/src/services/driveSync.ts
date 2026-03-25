@@ -1,6 +1,39 @@
 import { AppData, DriveSync } from '../types'
 
+const FILE_NAME = 'networth-tracker-data.json'
+
 export class DriveSyncService {
+  static async findFileId(accessToken: string): Promise<string | null> {
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}'&spaces=drive&pageSize=1&fields=files(id)`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`
+          }
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error(`Failed to search Drive: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+      const files = result.files || []
+
+      if (files.length > 0) {
+        console.log(`Found file with ID: ${files[0].id}`)
+        return files[0].id
+      }
+
+      console.log('File not found on Drive')
+      return null
+    } catch (error) {
+      console.error('Error finding file:', error)
+      throw error
+    }
+  }
+
   static async authenticate(): Promise<string> {
     // This will be called from the main process for OAuth flow
     // Returns access token

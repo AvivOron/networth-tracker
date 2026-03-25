@@ -14,7 +14,6 @@ export function Settings({ data, onUpdateDriveSync, onReloadFromDrive }: Setting
   const driveSync = data.driveSync || { enabled: false }
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [isReloading, setIsReloading] = useState(false)
-  const [fileIdInput, setFileIdInput] = useState(driveSync.fileId || '')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -29,10 +28,22 @@ export function Settings({ data, onUpdateDriveSync, onReloadFromDrive }: Setting
       }
 
       const accessToken = await window.api.authenticateWithGoogle()
+
+      // Try to find existing file by name
+      let fileId = driveSync.fileId
+      try {
+        const foundFileId = await DriveSyncService.findFileId(accessToken)
+        if (foundFileId) {
+          fileId = foundFileId
+        }
+      } catch (err) {
+        console.error('Could not auto-find file:', err)
+      }
+
       await onUpdateDriveSync({
         enabled: true,
         accessToken,
-        fileId: driveSync.fileId,
+        fileId,
         lastSyncAt: driveSync.lastSyncAt
       })
       setSuccess('Successfully connected to Google Drive')
@@ -91,25 +102,6 @@ export function Settings({ data, onUpdateDriveSync, onReloadFromDrive }: Setting
     }
   }
 
-  async function handleSaveFileId() {
-    setError(null)
-    setSuccess(null)
-
-    if (!fileIdInput.trim()) {
-      setError('File ID cannot be empty')
-      return
-    }
-
-    try {
-      await onUpdateDriveSync({
-        ...driveSync,
-        fileId: fileIdInput.trim()
-      })
-      setSuccess('File ID saved successfully')
-    } catch (err) {
-      setError(`Failed to save file ID: ${err instanceof Error ? err.message : String(err)}`)
-    }
-  }
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
@@ -165,28 +157,6 @@ export function Settings({ data, onUpdateDriveSync, onReloadFromDrive }: Setting
               </div>
             )}
           </div>
-
-          {/* File ID Input */}
-          {driveSync.accessToken && (
-            <div className="space-y-2">
-              <label className="text-sm text-gray-300">Google Drive File ID</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={fileIdInput}
-                  onChange={(e) => setFileIdInput(e.target.value)}
-                  placeholder="Paste file ID from Google Drive"
-                  className="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-                />
-                <button
-                  onClick={handleSaveFileId}
-                  className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium transition-colors"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Sync Toggle */}
           {driveSync.accessToken && (
