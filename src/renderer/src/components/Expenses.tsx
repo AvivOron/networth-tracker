@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Plus, Pencil, Trash2, X, Check,
   Home, Baby, RefreshCw, Shield, Zap, Car, PawPrint, MoreHorizontal,
@@ -83,16 +83,23 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [selectedOwner, setSelectedOwner] = useState<string | null>(null)
+  const categoryRefs = useRef<Record<ExpenseCategory, HTMLDivElement | null>>({} as Record<ExpenseCategory, HTMLDivElement | null>)
 
-  const activeExpenses = expenses.filter((e) => e.active)
+  // Filter expenses by selected owner
+  const filteredExpenses = selectedOwner
+    ? expenses.filter((e) => e.owner === selectedOwner)
+    : expenses
+
+  const activeExpenses = filteredExpenses.filter((e) => e.active)
   const totalMonthly = activeExpenses.reduce((sum, e) => sum + monthlyAmount(e), 0)
   const totalYearly = totalMonthly * 12
-  const categoryData = calculateCategoryData(expenses)
+  const categoryData = calculateCategoryData(filteredExpenses)
 
   // Group all expenses by category
   const byCategory = CATEGORIES.reduce<Record<ExpenseCategory, RecurringExpense[]>>(
     (acc, cat) => {
-      acc[cat] = expenses.filter((e) => e.category === cat)
+      acc[cat] = filteredExpenses.filter((e) => e.category === cat)
       return acc
     },
     {} as Record<ExpenseCategory, RecurringExpense[]>
@@ -170,6 +177,13 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
     await onSave(updated)
   }
 
+  function handleBarClick(data: { name: string }) {
+    const ref = categoryRefs.current[data.name as ExpenseCategory]
+    if (ref) {
+      ref.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   const isFormValid = form.name.trim() && parseFloat(form.amount) > 0
 
   return (
@@ -188,6 +202,38 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
           Add Expense
         </button>
       </div>
+
+      {/* Family member filter */}
+      {familyMembers.length > 0 && (
+        <div className="flex items-center gap-2 mb-8 pb-4 border-b border-white/5">
+          <span className="text-xs font-medium text-gray-500">Filter by owner:</span>
+          <button
+            onClick={() => setSelectedOwner(null)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-sm transition-colors',
+              selectedOwner === null
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
+            )}
+          >
+            All
+          </button>
+          {familyMembers.map((member) => (
+            <button
+              key={member}
+              onClick={() => setSelectedOwner(member)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-sm transition-colors',
+                selectedOwner === member
+                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                  : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
+              )}
+            >
+              {member}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4 mb-8">
@@ -213,7 +259,8 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
       {categoryData.length > 0 && (
         <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-6">Expenses by Category</h2>
-          <ResponsiveContainer width="100%" height={260}>
+          <div className="[&_svg]:cursor-pointer">
+            <ResponsiveContainer width="100%" height={260}>
             <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
               <XAxis
@@ -238,7 +285,7 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
                 labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}
                 formatter={(v) => [fmt(v as number), 'Monthly Amount']}
               />
-              <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]}>
+              <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]} onClick={handleBarClick}>
                 {categoryData.map((entry, idx) => (
                   <Cell
                     key={`cell-${idx}`}
@@ -248,6 +295,7 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+          </div>
         </div>
       )}
 
@@ -269,12 +317,18 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
         </div>
       ) : (
         <div className="space-y-4">
-          {CATEGORIES.filter((cat) => byCategory[cat].length > 0).map((cat) => {
+          {CATEGORIES.filter((cat) => byCategory[cat].length > 0)
+            .sort((a, b) => {
+              const aMonthly = byCategory[a].filter((e) => e.active).reduce((s, e) => s + monthlyAmount(e), 0)
+              const bMonthly = byCategory[b].filter((e) => e.active).reduce((s, e) => s + monthlyAmount(e), 0)
+              return bMonthly - aMonthly
+            })
+            .map((cat) => {
             const items = byCategory[cat]
             const catMonthly = items.filter((e) => e.active).reduce((s, e) => s + monthlyAmount(e), 0)
             const cfg = CATEGORY_CONFIG[cat]
             return (
-              <div key={cat} className="bg-[#14141f] border border-white/5 rounded-xl overflow-hidden">
+              <div key={cat} ref={(el) => { if (el) categoryRefs.current[cat] = el }} className="bg-[#14141f] border border-white/5 rounded-xl overflow-hidden">
                 {/* Category header */}
                 <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/5">
                   <div className="flex items-center gap-2.5">
