@@ -23,6 +23,7 @@
     ],
     "mac": {
       "category": "public.app-category.finance",
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "dmg",

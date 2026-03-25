@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Check, Landmark, LineChart, Baby, Globe, X } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, Check, Landmark, LineChart, Baby, Globe, X, PiggyBank } from 'lucide-react'
 import { Account, AccountKind, FamilyMember } from '../types'
 import { generateId, cn } from '../utils'
 
@@ -36,6 +36,10 @@ export const ACCOUNT_KIND_CONFIG: Record<
   child: {
     label: 'Child Savings',
     icon: <Baby size={13} />
+  },
+  piggyBank: {
+    label: 'Savings Fund',
+    icon: <PiggyBank size={13} />
   }
 }
 
@@ -43,6 +47,7 @@ const ACCOUNT_KINDS: { value: AccountKind; label: string; description: string }[
   { value: 'bank', label: 'Bank Account', description: 'Checking + Savings balances' },
   { value: 'brokerage', label: 'Brokerage Account', description: 'Single balance' },
   { value: 'child', label: 'Child Savings', description: 'Single balance' },
+  { value: 'piggyBank', label: 'Savings Fund', description: 'Single balance' },
   { value: 'custom', label: 'Custom', description: 'Single balance' }
 ]
 

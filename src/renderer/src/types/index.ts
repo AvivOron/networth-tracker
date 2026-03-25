@@ -1,4 +1,4 @@
-export type AccountKind = 'bank' | 'brokerage' | 'child' | 'custom'
+export type AccountKind = 'bank' | 'brokerage' | 'child' | 'piggyBank' | 'custom'
 
 export interface Account {
   id: string
