@@ -10,8 +10,8 @@ interface SidebarProps {
 
 const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'snapshot', label: 'Enter Snapshot', icon: PlusCircle },
   { id: 'accounts', label: 'Accounts', icon: Wallet },
+  { id: 'snapshot', label: 'Enter Snapshot', icon: PlusCircle },
   { id: 'history', label: 'History', icon: History },
   { id: 'settings', label: 'Settings', icon: SettingsIcon }
 ]
