@@ -1,8 +1,8 @@
-# CLAUDE.md — NetWorth Tracker
+# CLAUDE.md — Finance Hub
 
 ## Project overview
 
-Electron + React + TypeScript desktop app for monthly net worth tracking. Uses `electron-vite` as the build tool, Tailwind CSS for styling, and Recharts for charts. All data is stored locally as JSON.
+Electron + React + TypeScript desktop app for comprehensive financial tracking—net worth, accounts, and recurring expenses. Uses `electron-vite` as the build tool, Tailwind CSS for styling, and Recharts for charts. All data is stored locally as JSON.
 
 ## Commands
 
@@ -25,11 +25,12 @@ npm run dist       # Build + package as .dmg installer → dist/
 ### Renderer layout
 ```
 App.tsx             state-based router (no react-router); wraps tree in CurrencyProvider
-  Sidebar.tsx       left nav + ₪/$ currency toggle in footer
-  Dashboard.tsx     charts + summary cards + family member/account filtering
+  Sidebar.tsx       left nav with sections (Tracking, Management, Settings) + ₪/$ currency toggle in footer
+  Dashboard.tsx     net worth charts + summary cards + family member/account filtering
   Accounts.tsx      CRUD for account categories, family member management
   SnapshotEntry.tsx monthly balance entry form with sub-balances and timestamps
   History.tsx       table of past snapshots with edit/delete
+  Expenses.tsx      recurring expenses tracker with CRUD + expense dashboard (summary cards + category chart)
   Settings.tsx      data export to JSON
 context/
   CurrencyContext.tsx  React context: Currency ('NIS'|'USD'), default NIS, persisted to localStorage
@@ -44,7 +45,9 @@ Account           { id, name, type: 'asset'|'liability', kind?, owner?, notes? }
 AccountKind       'bank' | 'brokerage' | 'child' | 'custom'
 SnapshotEntry     { accountId, balance, subBalances?, lastUpdatedAt? }
 MonthlySnapshot   { id, date (YYYY-MM), entries[], createdAt, updatedAt }
-AppData           { accounts: Account[], snapshots: MonthlySnapshot[], familyMembers? }
+RecurringExpense  { id, name, amount, category, billingCycle, owner?, notes?, active }
+ExpenseCategory   'housing' | 'childcare' | 'subscriptions' | 'insurance' | 'utilities' | 'transport' | 'pets' | 'other'
+AppData           { accounts: Account[], snapshots: MonthlySnapshot[], familyMembers?, expenses? }
 ```
 
 ## Conventions
