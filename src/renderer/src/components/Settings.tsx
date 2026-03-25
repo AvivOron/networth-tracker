@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HardDrive, LogOut, Loader } from 'lucide-react'
+import { HardDrive, LogOut, Loader, RefreshCw } from 'lucide-react'
 import { AppData, DriveSync } from '../types'
 import { cn } from '../utils'
 import { DriveSyncService } from '../services/driveSync'
@@ -7,11 +7,14 @@ import { DriveSyncService } from '../services/driveSync'
 interface SettingsProps {
   data: AppData
   onUpdateDriveSync: (driveSync: DriveSync) => Promise<void>
+  onReloadFromDrive?: () => Promise<void>
 }
 
-export function Settings({ data, onUpdateDriveSync }: SettingsProps) {
+export function Settings({ data, onUpdateDriveSync, onReloadFromDrive }: SettingsProps) {
   const driveSync = data.driveSync || { enabled: false }
   const [isAuthenticating, setIsAuthenticating] = useState(false)
+  const [isReloading, setIsReloading] = useState(false)
+  const [fileIdInput, setFileIdInput] = useState(driveSync.fileId || '')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -70,6 +73,44 @@ export function Settings({ data, onUpdateDriveSync }: SettingsProps) {
     }
   }
 
+  async function handleReloadFromDrive() {
+    setError(null)
+    setSuccess(null)
+    setIsReloading(true)
+
+    try {
+      if (!onReloadFromDrive) {
+        throw new Error('Reload function not available')
+      }
+      await onReloadFromDrive()
+      setSuccess('Data reloaded from Google Drive')
+    } catch (err) {
+      setError(`Failed to reload from Drive: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setIsReloading(false)
+    }
+  }
+
+  async function handleSaveFileId() {
+    setError(null)
+    setSuccess(null)
+
+    if (!fileIdInput.trim()) {
+      setError('File ID cannot be empty')
+      return
+    }
+
+    try {
+      await onUpdateDriveSync({
+        ...driveSync,
+        fileId: fileIdInput.trim()
+      })
+      setSuccess('File ID saved successfully')
+    } catch (err) {
+      setError(`Failed to save file ID: ${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
+
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
       <div>
@@ -125,6 +166,28 @@ export function Settings({ data, onUpdateDriveSync }: SettingsProps) {
             )}
           </div>
 
+          {/* File ID Input */}
+          {driveSync.accessToken && (
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Google Drive File ID</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={fileIdInput}
+                  onChange={(e) => setFileIdInput(e.target.value)}
+                  placeholder="Paste file ID from Google Drive"
+                  className="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleSaveFileId}
+                  className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Sync Toggle */}
           {driveSync.accessToken && (
             <div className="flex items-center justify-between bg-white/5 rounded-lg p-4">
@@ -179,13 +242,30 @@ export function Settings({ data, onUpdateDriveSync }: SettingsProps) {
                 )}
               </button>
             ) : (
-              <button
-                onClick={handleDisconnectDrive}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium transition-colors"
-              >
-                <LogOut size={16} />
-                Disconnect
-              </button>
+              <>
+                <button
+                  onClick={handleDisconnectDrive}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm font-medium transition-colors"
+                >
+                  <LogOut size={16} />
+                  Disconnect
+                </button>
+                {onReloadFromDrive && (
+                  <button
+                    onClick={handleReloadFromDrive}
+                    disabled={isReloading}
+                    className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-400 text-sm font-medium transition-colors"
+                  >
+                    {isReloading ? (
+                      <>
+                        <Loader size={16} className="animate-spin" />
+                      </>
+                    ) : (
+                      <RefreshCw size={16} />
+                    )}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

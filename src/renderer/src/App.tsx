@@ -17,7 +17,8 @@ export default function App() {
     saveAccounts,
     saveSnapshots,
     saveFamilyMembers,
-    updateDriveSync
+    updateDriveSync,
+    reloadFromDrive
   } = useData()
   const [page, setPage] = useState<Page>('dashboard')
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
@@ -91,7 +92,7 @@ export default function App() {
               />
             )}
             {page === 'settings' && (
-              <Settings data={data} onUpdateDriveSync={updateDriveSync} />
+              <Settings data={data} onUpdateDriveSync={updateDriveSync} onReloadFromDrive={reloadFromDrive} />
             )}
           </div>
         </main>

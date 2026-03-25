@@ -95,10 +95,11 @@ export function useData() {
         DriveSyncService.uploadData(newData, newData.driveSync)
           .then((updatedDriveSync) => {
             // Update driveSync state with new fileId and lastSyncAt
-            setData((prev) => ({
-              ...prev,
-              driveSync: updatedDriveSync
-            }))
+            const dataWithUpdatedSync = { ...newData, driveSync: updatedDriveSync }
+            setData(dataWithUpdatedSync)
+            // Save the updated driveSync config (with fileId) back to local file
+            const api = getApi()
+            api.saveData(dataWithUpdatedSync)
             console.log('Synced with Google Drive successfully')
           })
           .catch((error) => {
@@ -147,6 +148,29 @@ export function useData() {
     [data]
   )
 
+  const reloadFromDrive = useCallback(async (): Promise<void> => {
+    const currentData = data
+    if (!currentData.driveSync?.enabled || !currentData.driveSync.accessToken) {
+      throw new Error('Google Drive sync is not enabled')
+    }
+
+    try {
+      const driveData = await DriveSyncService.downloadData(currentData.driveSync)
+      if (driveData) {
+        setData(driveData)
+        // Save the downloaded data locally as well
+        const api = getApi()
+        await api.saveData(driveData)
+        console.log('Reloaded data from Google Drive')
+      } else {
+        throw new Error('No data found on Google Drive')
+      }
+    } catch (error) {
+      console.error('Failed to reload from Drive:', error)
+      throw error
+    }
+  }, [data])
+
   return {
     data,
     loading,
@@ -155,6 +179,7 @@ export function useData() {
     saveSnapshots,
     saveFamilyMembers,
     updateDriveSync,
+    reloadFromDrive,
     addSyncAlert
   }
 }

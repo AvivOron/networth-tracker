@@ -47,7 +47,12 @@ export class DriveSyncService {
         }
 
         const result = await response.json()
+        console.log('Upload response:', result)
         fileId = result.id
+        if (!fileId) {
+          console.error('No file ID in response:', result)
+          throw new Error('Google Drive did not return a file ID')
+        }
       } else {
         // Update existing file
         const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
@@ -77,7 +82,13 @@ export class DriveSyncService {
   }
 
   static async downloadData(driveSync: DriveSync): Promise<AppData | null> {
-    if (!driveSync.accessToken || !driveSync.fileId) {
+    console.log('downloadData called with driveSync:', { accessToken: !!driveSync.accessToken, fileId: driveSync.fileId })
+    if (!driveSync.accessToken) {
+      console.error('No access token available')
+      return null
+    }
+    if (!driveSync.fileId) {
+      console.error('No file ID available - file may not have been synced yet')
       return null
     }
 
