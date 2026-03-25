@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Save, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Save, AlertCircle, ExternalLink } from 'lucide-react'
 import { Account, MonthlySnapshot, SnapshotEntry as SnapshotEntryType } from '../types'
 import { getCurrentMonth, generateId, formatMonthFull, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
@@ -277,6 +277,15 @@ function AccountSection({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-indigo-400 shrink-0">{kindConfig.icon}</span>
                 <p className="text-sm text-gray-200 font-medium truncate">{account.name}</p>
+                {account.url && (
+                  <button
+                    onClick={() => window.api.openExternal(account.url!)}
+                    className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
+                    title="Open vendor website"
+                  >
+                    <ExternalLink size={12} />
+                  </button>
+                )}
                 {account.owner && (
                   <span className="text-xs text-gray-500">({account.owner})</span>
                 )}
@@ -318,6 +327,15 @@ function AccountSection({
                     <span className="text-indigo-400 shrink-0">{kindConfig.icon}</span>
                   )}
                   <p className="text-sm text-gray-200 font-medium truncate">{account.name}</p>
+                  {account.url && (
+                    <button
+                      onClick={() => window.api.openExternal(account.url!)}
+                      className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
+                      title="Open vendor website"
+                    >
+                      <ExternalLink size={12} />
+                    </button>
+                  )}
                   {account.owner && (
                     <span className="text-xs text-gray-500">({account.owner})</span>
                   )}

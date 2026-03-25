@@ -8,6 +8,7 @@ declare global {
       getData: () => Promise<AppData>
       saveData: (data: AppData) => Promise<boolean>
       authenticateWithGoogle: () => Promise<string>
+      openExternal: (url: string) => Promise<boolean>
     }
   }
 }

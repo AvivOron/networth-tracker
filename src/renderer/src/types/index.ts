@@ -7,6 +7,7 @@ export interface Account {
   kind?: AccountKind // undefined treated as 'custom' for backward compatibility
   owner?: string // family member who owns this account
   notes?: string
+  url?: string // vendor website URL
 }
 
 export interface SnapshotEntry {

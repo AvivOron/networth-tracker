@@ -80,6 +80,11 @@ app.whenReady().then(() => {
     return true
   })
 
+  ipcMain.handle('shell:openExternal', (_event, externalUrl: string) => {
+    shell.openExternal(externalUrl)
+    return true
+  })
+
   ipcMain.handle('authenticateWithGoogle', async () => {
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
       throw new Error('Google OAuth credentials not configured. Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env')

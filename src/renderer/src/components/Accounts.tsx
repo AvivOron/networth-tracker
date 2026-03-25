@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, X, Check, Landmark, LineChart, Users, Baby } from 'lucide-react'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, X, Check, Landmark, LineChart, Users, Baby, Globe } from 'lucide-react'
 import { Account, AccountKind } from '../types'
 import { generateId, cn } from '../utils'
 
@@ -16,9 +16,10 @@ type FormState = {
   kind: AccountKind
   owner: string
   notes: string
+  url: string
 }
 
-const emptyForm: FormState = { name: '', type: 'asset', kind: 'custom', owner: '', notes: '' }
+const emptyForm: FormState = { name: '', type: 'asset', kind: 'custom', owner: '', notes: '', url: '' }
 
 export const ACCOUNT_KIND_CONFIG: Record<
   Exclude<AccountKind, 'custom'>,
@@ -76,7 +77,7 @@ export function Accounts({ accounts, familyMembers, onSave, onSaveFamilyMembers 
 
   function openEdit(account: Account) {
     setEditingId(account.id)
-    setForm({ name: account.name, type: account.type, kind: account.kind ?? 'custom', owner: account.owner ?? '', notes: account.notes ?? '' })
+    setForm({ name: account.name, type: account.type, kind: account.kind ?? 'custom', owner: account.owner ?? '', notes: account.notes ?? '', url: account.url ?? '' })
     setShowModal(true)
   }
 
@@ -88,7 +89,7 @@ export function Accounts({ accounts, familyMembers, onSave, onSaveFamilyMembers 
       let updated: Account[]
       if (editingId) {
         updated = accounts.map((a) =>
-          a.id === editingId ? { ...a, name: form.name.trim(), type: form.type, kind: form.kind, owner: form.owner || undefined, notes: form.notes.trim() || undefined } : a
+          a.id === editingId ? { ...a, name: form.name.trim(), type: form.type, kind: form.kind, owner: form.owner || undefined, notes: form.notes.trim() || undefined, url: form.url.trim() || undefined } : a
         )
       } else {
         const newAccount: Account = {
@@ -97,7 +98,8 @@ export function Accounts({ accounts, familyMembers, onSave, onSaveFamilyMembers 
           type: form.type,
           kind: form.kind,
           owner: form.owner || undefined,
-          notes: form.notes.trim() || undefined
+          notes: form.notes.trim() || undefined,
+          url: form.url.trim() || undefined
         }
         updated = [...accounts, newAccount]
       }
@@ -314,6 +316,18 @@ export function Accounts({ accounts, familyMembers, onSave, onSaveFamilyMembers 
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors resize-none"
               />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Vendor URL <span className="text-gray-600">(optional)</span>
+              </label>
+              <input
+                type="url"
+                value={form.url}
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                placeholder="e.g. https://www.chase.com"
+                className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+              />
+            </div>
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => setShowModal(false)}
@@ -437,6 +451,15 @@ function AccountGroup({
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="text-sm font-medium text-gray-200 truncate">{account.name}</p>
+                  {account.url && (
+                    <button
+                      onClick={() => window.api.openExternal(account.url!)}
+                      className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
+                      title="Open vendor website"
+                    >
+                      <Globe size={13} />
+                    </button>
+                  )}
                   {account.kind && account.kind !== 'custom' && (
                     <span className="shrink-0 flex items-center gap-1 text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2.5 py-0.5">
                       {ACCOUNT_KIND_CONFIG[account.kind].icon}
