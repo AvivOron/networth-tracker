@@ -3,7 +3,8 @@ import { electronAPI } from '@electron-toolkit/preload'
 
 const api = {
   getData: (): Promise<unknown> => ipcRenderer.invoke('getData'),
-  saveData: (data: unknown): Promise<boolean> => ipcRenderer.invoke('saveData', data)
+  saveData: (data: unknown): Promise<boolean> => ipcRenderer.invoke('saveData', data),
+  authenticateWithGoogle: (): Promise<string> => ipcRenderer.invoke('authenticateWithGoogle')
 }
 
 if (process.contextIsolated) {

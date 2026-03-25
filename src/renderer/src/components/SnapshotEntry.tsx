@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Save, AlertCircle } from 'lucide-react'
 import { Account, MonthlySnapshot, SnapshotEntry as SnapshotEntryType } from '../types'
 import { getCurrentMonth, generateId, formatMonthFull, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { ACCOUNT_KIND_CONFIG } from './Accounts'
 
 interface SnapshotEntryProps {
   accounts: Account[]
@@ -40,23 +41,24 @@ export function SnapshotEntry({
 
   // Load existing snapshot data when month changes or editing
   useEffect(() => {
-    if (editingSnapshotId) {
-      const snap = snapshots.find((s) => s.id === editingSnapshotId)
-      if (snap) {
-        setMonth(snap.date)
-        const init: Record<string, string> = {}
-        for (const e of snap.entries) {
-          init[e.accountId] = String(e.balance)
-        }
-        setBalances(init)
-        return
-      }
-    }
-    const snap = snapshots.find((s) => s.date === month)
+    const snap = editingSnapshotId
+      ? snapshots.find((s) => s.id === editingSnapshotId)
+      : snapshots.find((s) => s.date === month)
+
+    if (editingSnapshotId && snap) setMonth(snap.date)
+
     if (snap) {
       const init: Record<string, string> = {}
       for (const e of snap.entries) {
-        init[e.accountId] = String(e.balance)
+        const account = accounts.find((a) => a.id === e.accountId)
+        const kindConfig = account?.kind && account.kind !== 'custom' ? ACCOUNT_KIND_CONFIG[account.kind] : null
+        if (kindConfig?.subLabels?.length) {
+          for (const sub of kindConfig.subLabels) {
+            init[e.accountId + ':' + sub] = String(e.subBalances?.[sub] ?? 0)
+          }
+        } else {
+          init[e.accountId] = String(e.balance)
+        }
       }
       setBalances(init)
     } else {
@@ -67,23 +69,43 @@ export function SnapshotEntry({
   const assets = accounts.filter((a) => a.type === 'asset')
   const liabilities = accounts.filter((a) => a.type === 'liability')
 
-  function getBalance(accountId: string): number {
-    const val = balances[accountId]
-    if (!val) return 0
-    return parseFloat(val) || 0
+  function getBalance(account: Account): number {
+    const kindConfig = account.kind && account.kind !== 'custom' ? ACCOUNT_KIND_CONFIG[account.kind] : null
+    if (kindConfig?.subLabels?.length) {
+      return kindConfig.subLabels.reduce((sum, sub) => sum + (parseFloat(balances[account.id + ':' + sub]) || 0), 0)
+    }
+    return parseFloat(balances[account.id]) || 0
   }
 
-  const totalAssets = assets.reduce((s, a) => s + getBalance(a.id), 0)
-  const totalLiabilities = liabilities.reduce((s, a) => s + getBalance(a.id), 0)
+  const totalAssets = assets.reduce((s, a) => s + getBalance(a), 0)
+  const totalLiabilities = liabilities.reduce((s, a) => s + getBalance(a), 0)
   const netWorth = totalAssets - totalLiabilities
 
   async function handleSave() {
     setSaving(true)
-    const entries: SnapshotEntryType[] = accounts
-      .filter((a) => balances[a.id] !== undefined && balances[a.id] !== '')
-      .map((a) => ({ accountId: a.id, balance: parseFloat(balances[a.id]) || 0 }))
-
     const now = new Date().toISOString()
+    const entries: SnapshotEntryType[] = accounts
+      .filter((a) => {
+        const kindConfig = a.kind && a.kind !== 'custom' ? ACCOUNT_KIND_CONFIG[a.kind] : null
+        if (kindConfig?.subLabels?.length) {
+          return kindConfig.subLabels.some((sub) => balances[a.id + ':' + sub] !== undefined && balances[a.id + ':' + sub] !== '')
+        }
+        return balances[a.id] !== undefined && balances[a.id] !== ''
+      })
+      .map((a) => {
+        const kindConfig = a.kind && a.kind !== 'custom' ? ACCOUNT_KIND_CONFIG[a.kind] : null
+        if (kindConfig?.subLabels?.length) {
+          const subBalances: Record<string, number> = {}
+          let total = 0
+          for (const sub of kindConfig.subLabels) {
+            const val = parseFloat(balances[a.id + ':' + sub]) || 0
+            subBalances[sub] = val
+            total += val
+          }
+          return { accountId: a.id, balance: total, subBalances, lastUpdatedAt: now }
+        }
+        return { accountId: a.id, balance: parseFloat(balances[a.id]) || 0, lastUpdatedAt: now }
+      })
     let updated: MonthlySnapshot[]
 
     if (existingSnapshot) {
@@ -166,6 +188,7 @@ export function SnapshotEntry({
             balances={balances}
             currencySymbol={currencySymbol}
             onChange={(id, val) => setBalances({ ...balances, [id]: val })}
+            snapshot={existingSnapshot}
           />
         )}
 
@@ -178,6 +201,7 @@ export function SnapshotEntry({
             balances={balances}
             currencySymbol={currencySymbol}
             onChange={(id, val) => setBalances({ ...balances, [id]: val })}
+            snapshot={existingSnapshot}
           />
         )}
 
@@ -224,7 +248,8 @@ function AccountSection({
   accounts,
   balances,
   currencySymbol,
-  onChange
+  onChange,
+  snapshot
 }: {
   title: string
   color: 'emerald' | 'red'
@@ -232,6 +257,7 @@ function AccountSection({
   balances: Record<string, string>
   currencySymbol: string
   onChange: (id: string, val: string) => void
+  snapshot?: MonthlySnapshot
 }) {
   return (
     <div className="bg-[#14141f] border border-white/5 rounded-xl overflow-hidden">
@@ -244,28 +270,85 @@ function AccountSection({
         {title}
       </div>
       <div className="divide-y divide-white/5">
-        {accounts.map((account) => (
-          <div key={account.id} className="flex items-center gap-4 px-5 py-3.5">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm text-gray-200 font-medium truncate">{account.name}</p>
-              {account.notes && (
-                <p className="text-xs text-gray-600 truncate mt-0.5">{account.notes}</p>
-              )}
+        {accounts.map((account) => {
+          const kindConfig = account.kind && account.kind !== 'custom' ? ACCOUNT_KIND_CONFIG[account.kind] : null
+          return kindConfig?.subLabels?.length ? (
+            <div key={account.id} className="px-5 py-3.5 space-y-2.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-indigo-400 shrink-0">{kindConfig.icon}</span>
+                <p className="text-sm text-gray-200 font-medium truncate">{account.name}</p>
+                {account.owner && (
+                  <span className="text-xs text-gray-500">({account.owner})</span>
+                )}
+                {snapshot && (() => {
+                  const entry = snapshot.entries.find((e) => e.accountId === account.id)
+                  return entry?.lastUpdatedAt ? (
+                    <span className="text-xs text-gray-600">
+                      {new Date(entry.lastUpdatedAt).toLocaleDateString()}
+                    </span>
+                  ) : null
+                })()}
+                {account.notes && (
+                  <p className="text-xs text-gray-600 truncate">· {account.notes}</p>
+                )}
+              </div>
+              {kindConfig.subLabels.map((sub) => (
+                <div key={sub} className="flex items-center justify-between pl-5">
+                  <span className="text-xs text-gray-500 capitalize">{sub}</span>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{currencySymbol}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={balances[account.id + ':' + sub] ?? ''}
+                      onChange={(e) => onChange(account.id + ':' + sub, e.target.value)}
+                      placeholder="0"
+                      className="w-40 bg-[#1c1c2a] border border-white/10 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{currencySymbol}</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={balances[account.id] ?? ''}
-                onChange={(e) => onChange(account.id, e.target.value)}
-                placeholder="0"
-                className="w-40 bg-[#1c1c2a] border border-white/10 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right"
-              />
+          ) : (
+            <div key={account.id} className="flex items-center gap-4 px-5 py-3.5">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {kindConfig && (
+                    <span className="text-indigo-400 shrink-0">{kindConfig.icon}</span>
+                  )}
+                  <p className="text-sm text-gray-200 font-medium truncate">{account.name}</p>
+                  {account.owner && (
+                    <span className="text-xs text-gray-500">({account.owner})</span>
+                  )}
+                  {snapshot && (() => {
+                    const entry = snapshot.entries.find((e) => e.accountId === account.id)
+                    return entry?.lastUpdatedAt ? (
+                      <span className="text-xs text-gray-600">
+                        {new Date(entry.lastUpdatedAt).toLocaleDateString()}
+                      </span>
+                    ) : null
+                  })()}
+                </div>
+                {account.notes && (
+                  <p className="text-xs text-gray-600 truncate mt-0.5">{account.notes}</p>
+                )}
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{currencySymbol}</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={balances[account.id] ?? ''}
+                  onChange={(e) => onChange(account.id, e.target.value)}
+                  placeholder="0"
+                  className="w-40 bg-[#1c1c2a] border border-white/10 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right"
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

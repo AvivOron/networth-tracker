@@ -1,4 +1,4 @@
-import { LayoutDashboard, PlusCircle, Wallet, History } from 'lucide-react'
+import { LayoutDashboard, PlusCircle, Wallet, History, Settings as SettingsIcon } from 'lucide-react'
 import { Page } from '../types'
 import { cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
@@ -12,7 +12,8 @@ const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'snapshot', label: 'Enter Snapshot', icon: PlusCircle },
   { id: 'accounts', label: 'Accounts', icon: Wallet },
-  { id: 'history', label: 'History', icon: History }
+  { id: 'history', label: 'History', icon: History },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon }
 ]
 
 export function Sidebar({ page, onNavigate }: SidebarProps) {
@@ -20,7 +21,7 @@ export function Sidebar({ page, onNavigate }: SidebarProps) {
   return (
     <aside className="flex flex-col w-[220px] min-w-[220px] bg-[#0f0f18] border-r border-white/5 h-full">
       {/* Title bar spacer for traffic lights */}
-      <div className="drag h-14 flex items-end pb-3 px-5">
+      <div className="drag h-20 flex flex-col justify-end pb-3 px-5">
         <div className="flex items-center gap-2.5 no-drag">
           <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center">
             <span className="text-indigo-400 text-sm font-bold">₿</span>

@@ -1,27 +1,69 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, X, Check } from 'lucide-react'
-import { Account } from '../types'
+import { Plus, Pencil, Trash2, TrendingUp, TrendingDown, X, Check, Landmark, LineChart, Users, Baby } from 'lucide-react'
+import { Account, AccountKind } from '../types'
 import { generateId, cn } from '../utils'
 
 interface AccountsProps {
   accounts: Account[]
+  familyMembers: string[]
   onSave: (accounts: Account[]) => Promise<void>
+  onSaveFamilyMembers: (members: string[]) => Promise<void>
 }
 
 type FormState = {
   name: string
   type: 'asset' | 'liability'
+  kind: AccountKind
+  owner: string
   notes: string
 }
 
-const emptyForm: FormState = { name: '', type: 'asset', notes: '' }
+const emptyForm: FormState = { name: '', type: 'asset', kind: 'custom', owner: '', notes: '' }
 
-export function Accounts({ accounts, onSave }: AccountsProps) {
+export const ACCOUNT_KIND_CONFIG: Record<
+  Exclude<AccountKind, 'custom'>,
+  { label: string; icon: React.ReactNode; subLabels?: string[] }
+> = {
+  bank: {
+    label: 'Bank Account',
+    icon: <Landmark size={13} />,
+    subLabels: ['checking', 'savings']
+  },
+  brokerage: {
+    label: 'Brokerage Account',
+    icon: <LineChart size={13} />
+  },
+  child: {
+    label: 'Child Savings',
+    icon: <Baby size={13} />
+  }
+}
+
+const ACCOUNT_KINDS: { value: AccountKind; label: string; description: string }[] = [
+  { value: 'bank', label: 'Bank Account', description: 'Checking + Savings balances' },
+  { value: 'brokerage', label: 'Brokerage Account', description: 'Single balance' },
+  { value: 'child', label: 'Child Savings', description: 'Single balance' },
+  { value: 'custom', label: 'Custom', description: 'Single balance' }
+]
+
+const FAMILY_MEMBER_COLORS = [
+  'text-rose-300 bg-rose-500/10 border-rose-500/20',
+  'text-violet-300 bg-violet-500/10 border-violet-500/20',
+  'text-cyan-300 bg-cyan-500/10 border-cyan-500/20',
+  'text-lime-300 bg-lime-500/10 border-lime-500/20',
+  'text-amber-300 bg-amber-500/10 border-amber-500/20',
+  'text-fuchsia-300 bg-fuchsia-500/10 border-fuchsia-500/20'
+]
+
+export function Accounts({ accounts, familyMembers, onSave, onSaveFamilyMembers }: AccountsProps) {
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [showFamilyModal, setShowFamilyModal] = useState(false)
+  const [newMemberName, setNewMemberName] = useState('')
+  const [savingMember, setSavingMember] = useState(false)
 
   const assets = accounts.filter((a) => a.type === 'asset')
   const liabilities = accounts.filter((a) => a.type === 'liability')
@@ -34,36 +76,64 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
 
   function openEdit(account: Account) {
     setEditingId(account.id)
-    setForm({ name: account.name, type: account.type, notes: account.notes ?? '' })
+    setForm({ name: account.name, type: account.type, kind: account.kind ?? 'custom', owner: account.owner ?? '', notes: account.notes ?? '' })
     setShowModal(true)
   }
 
   async function handleSave() {
     if (!form.name.trim()) return
     setSaving(true)
-    let updated: Account[]
-    if (editingId) {
-      updated = accounts.map((a) =>
-        a.id === editingId ? { ...a, name: form.name.trim(), type: form.type, notes: form.notes.trim() || undefined } : a
-      )
-    } else {
-      const newAccount: Account = {
-        id: generateId(),
-        name: form.name.trim(),
-        type: form.type,
-        notes: form.notes.trim() || undefined
+    try {
+      console.log('Starting account save...')
+      let updated: Account[]
+      if (editingId) {
+        updated = accounts.map((a) =>
+          a.id === editingId ? { ...a, name: form.name.trim(), type: form.type, kind: form.kind, owner: form.owner || undefined, notes: form.notes.trim() || undefined } : a
+        )
+      } else {
+        const newAccount: Account = {
+          id: generateId(),
+          name: form.name.trim(),
+          type: form.type,
+          kind: form.kind,
+          owner: form.owner || undefined,
+          notes: form.notes.trim() || undefined
+        }
+        updated = [...accounts, newAccount]
       }
-      updated = [...accounts, newAccount]
+      console.log('Calling onSave with', updated.length, 'accounts')
+      await onSave(updated)
+      console.log('Save completed')
+    } catch (error) {
+      console.error('Error saving account:', error)
+      alert('Error saving account: ' + (error instanceof Error ? error.message : String(error)))
+    } finally {
+      console.log('Resetting save state')
+      setSaving(false)
+      setShowModal(false)
     }
-    await onSave(updated)
-    setSaving(false)
-    setShowModal(false)
   }
 
   async function handleDelete(id: string) {
     const updated = accounts.filter((a) => a.id !== id)
     await onSave(updated)
     setDeleteConfirm(null)
+  }
+
+  async function handleAddFamilyMember() {
+    if (!newMemberName.trim()) return
+    setSavingMember(true)
+    try {
+      const updated = [...(familyMembers || []), newMemberName.trim()]
+      await onSaveFamilyMembers(updated)
+    } catch (error) {
+      console.error('Error saving family member:', error)
+      alert('Error saving family member. Please try again.')
+    } finally {
+      setSavingMember(false)
+      setShowFamilyModal(false)
+      setNewMemberName('')
+    }
   }
 
   return (
@@ -82,12 +152,53 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
         </button>
       </div>
 
+      {/* Family Members Section */}
+      <div className="bg-[#14141f] border border-white/5 rounded-xl p-5 mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-indigo-400" />
+            <h2 className="text-sm font-semibold text-white">Family Members</h2>
+          </div>
+          <button
+            onClick={() => setShowFamilyModal(true)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
+          >
+            <Plus size={13} />
+            Add
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(!familyMembers || familyMembers.length === 0) ? (
+            <p className="text-xs text-gray-600">No family members added yet</p>
+          ) : (
+            familyMembers.map((member, index) => {
+              const colorClass = FAMILY_MEMBER_COLORS[index % FAMILY_MEMBER_COLORS.length]
+              return (
+                <div key={member} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border ${colorClass}`}>
+                  <span>{member}</span>
+                  <button
+                    onClick={() => {
+                      const updated = familyMembers.filter((m) => m !== member)
+                      onSaveFamilyMembers(updated)
+                    }}
+                    className="ml-1 hover:opacity-80 transition-opacity"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-6">
         <AccountGroup
           title="Assets"
           icon={<TrendingUp size={15} className="text-emerald-400" />}
           color="emerald"
           accounts={assets}
+          familyMembers={familyMembers}
           deleteConfirm={deleteConfirm}
           onAdd={() => openAdd('asset')}
           onEdit={openEdit}
@@ -100,6 +211,7 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
           icon={<TrendingDown size={15} className="text-red-400" />}
           color="red"
           accounts={liabilities}
+          familyMembers={familyMembers}
           deleteConfirm={deleteConfirm}
           onAdd={() => openAdd('liability')}
           onEdit={openEdit}
@@ -128,6 +240,31 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
               />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Account Kind</label>
+              <div className="flex flex-col gap-2">
+                {ACCOUNT_KINDS.map((k) => (
+                  <button
+                    key={k.value}
+                    onClick={() => setForm({ ...form, kind: k.value })}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm border transition-all text-left',
+                      form.kind === k.value
+                        ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+                        : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20'
+                    )}
+                  >
+                    {k.value !== 'custom' && (
+                      <span className="shrink-0">{ACCOUNT_KIND_CONFIG[k.value].icon}</span>
+                    )}
+                    <div>
+                      <span className="font-medium">{k.label}</span>
+                      <span className="ml-2 text-xs opacity-60">{k.description}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
               <div className="flex gap-2">
                 {(['asset', 'liability'] as const).map((t) => (
@@ -147,6 +284,23 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                Owner <span className="text-gray-600">(optional)</span>
+              </label>
+              <select
+                value={form.owner}
+                onChange={(e) => setForm({ ...form, owner: e.target.value })}
+                className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+              >
+                <option value="">Select family member...</option>
+                {familyMembers?.map((member) => (
+                  <option key={member} value={member}>
+                    {member}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
@@ -178,6 +332,43 @@ export function Accounts({ accounts, onSave }: AccountsProps) {
           </div>
         </Modal>
       )}
+
+      {showFamilyModal && (
+        <Modal
+          title="Add Family Member"
+          onClose={() => setShowFamilyModal(false)}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+              <input
+                autoFocus
+                type="text"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAddFamilyMember()}
+                placeholder="e.g. John"
+                className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+              />
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => setShowFamilyModal(false)}
+                className="flex-1 py-2 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-gray-200 hover:border-white/20 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddFamilyMember}
+                disabled={!newMemberName.trim() || savingMember}
+                className="flex-1 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm text-white font-medium transition-colors"
+              >
+                {savingMember ? 'Saving…' : 'Add Member'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }
@@ -187,6 +378,7 @@ function AccountGroup({
   icon,
   color,
   accounts,
+  familyMembers,
   deleteConfirm,
   onAdd,
   onEdit,
@@ -198,6 +390,7 @@ function AccountGroup({
   icon: React.ReactNode
   color: 'emerald' | 'red'
   accounts: Account[]
+  familyMembers: string[]
   deleteConfirm: string | null
   onAdd: () => void
   onEdit: (a: Account) => void
@@ -242,9 +435,25 @@ function AccountGroup({
           accounts.map((account) => (
             <div key={account.id} className="flex items-center justify-between px-5 py-3.5 group">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-200 truncate">{account.name}</p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm font-medium text-gray-200 truncate">{account.name}</p>
+                  {account.kind && account.kind !== 'custom' && (
+                    <span className="shrink-0 flex items-center gap-1 text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2.5 py-0.5">
+                      {ACCOUNT_KIND_CONFIG[account.kind].icon}
+                      {ACCOUNT_KIND_CONFIG[account.kind].label.replace(' Account', '')}
+                    </span>
+                  )}
+                  {account.owner && (() => {
+                    const colorIndex = familyMembers.indexOf(account.owner) % FAMILY_MEMBER_COLORS.length
+                    return (
+                      <span className={`shrink-0 flex items-center text-[10px] border rounded-full px-2.5 py-0.5 ${FAMILY_MEMBER_COLORS[colorIndex]}`}>
+                        {account.owner}
+                      </span>
+                    )
+                  })()}
+                </div>
                 {account.notes && (
-                  <p className="text-xs text-gray-600 truncate mt-0.5">{account.notes}</p>
+                  <p className="text-xs text-gray-600 truncate mt-1">{account.notes}</p>
                 )}
               </div>
               <div className="flex items-center gap-1 ml-3 opacity-0 group-hover:opacity-100 transition-opacity">

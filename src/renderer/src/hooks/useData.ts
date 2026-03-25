@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { AppData, Account, MonthlySnapshot } from '../types'
+import { DriveSyncService } from '../services/driveSync'
 
-const defaultData: AppData = { accounts: [], snapshots: [] }
+const defaultData: AppData = { accounts: [], snapshots: [], familyMembers: [], driveSync: { enabled: false } }
 const LS_KEY = 'networth-tracker-data'
+
+export interface SyncAlert {
+  id: string
+  type: 'error' | 'warning'
+  message: string
+}
 
 // Fallback API using localStorage (used in browser preview / outside Electron)
 const browserApi = {
@@ -27,18 +34,84 @@ function getApi() {
 export function useData() {
   const [data, setData] = useState<AppData>(defaultData)
   const [loading, setLoading] = useState(true)
+  const [syncAlerts, setSyncAlerts] = useState<SyncAlert[]>([])
+
+  const addSyncAlert = useCallback((alert: Omit<SyncAlert, 'id'>) => {
+    const id = Math.random().toString(36).substr(2, 9)
+    setSyncAlerts((prev) => [...prev, { ...alert, id }])
+    setTimeout(() => {
+      setSyncAlerts((prev) => prev.filter((a) => a.id !== id))
+    }, 5000)
+  }, [])
 
   useEffect(() => {
-    getApi().getData().then((d) => {
-      setData(d || defaultData)
-      setLoading(false)
-    })
-  }, [])
+    (async () => {
+      const api = getApi()
+      const localData = await api.getData()
 
-  const saveAll = useCallback(async (newData: AppData): Promise<void> => {
-    setData(newData)
-    await getApi().saveData(newData)
-  }, [])
+      // Try to download from Google Drive if sync is enabled
+      if (localData?.driveSync?.enabled && localData.driveSync.accessToken) {
+        try {
+          const driveData = await DriveSyncService.downloadData(localData.driveSync)
+          if (driveData) {
+            console.log('Downloaded data from Google Drive')
+            setData(driveData)
+            setLoading(false)
+            return
+          }
+        } catch (error) {
+          console.error('Failed to download from Drive, using local data:', error)
+          addSyncAlert({
+            type: 'warning',
+            message: 'Could not sync with Google Drive, using local data'
+          })
+        }
+      }
+
+      setData(localData || defaultData)
+      setLoading(false)
+    })()
+  }, [addSyncAlert])
+
+  const saveAll = useCallback(
+    async (newData: AppData): Promise<void> => {
+      setData(newData)
+      const api = getApi()
+      console.log('Saving data with API:', api === browserApi ? 'browser' : 'electron')
+
+      try {
+        const result = api.saveData(newData)
+        await Promise.race([
+          result,
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Save timeout')), 5000))
+        ])
+      } catch (error) {
+        console.error('Failed to save data:', error)
+        throw error
+      }
+
+      // Attempt to sync with Google Drive (non-blocking)
+      if (newData.driveSync?.enabled && newData.driveSync.accessToken) {
+        DriveSyncService.uploadData(newData, newData.driveSync)
+          .then((updatedDriveSync) => {
+            // Update driveSync state with new fileId and lastSyncAt
+            setData((prev) => ({
+              ...prev,
+              driveSync: updatedDriveSync
+            }))
+            console.log('Synced with Google Drive successfully')
+          })
+          .catch((error) => {
+            console.error('Failed to sync with Google Drive:', error)
+            addSyncAlert({
+              type: 'warning',
+              message: 'Failed to sync with Google Drive, but data saved locally'
+            })
+          })
+      }
+    },
+    [addSyncAlert]
+  )
 
   const saveAccounts = useCallback(
     async (accounts: Account[]): Promise<void> => {
@@ -56,5 +129,32 @@ export function useData() {
     [data, saveAll]
   )
 
-  return { data, loading, saveAccounts, saveSnapshots }
+  const saveFamilyMembers = useCallback(
+    async (familyMembers: string[]): Promise<void> => {
+      const newData = { ...data, familyMembers }
+      await saveAll(newData)
+    },
+    [data, saveAll]
+  )
+
+  const updateDriveSync = useCallback(
+    async (driveSync: AppData['driveSync']): Promise<void> => {
+      const newData = { ...data, driveSync }
+      setData(newData)
+      const api = getApi()
+      await api.saveData(newData)
+    },
+    [data]
+  )
+
+  return {
+    data,
+    loading,
+    syncAlerts,
+    saveAccounts,
+    saveSnapshots,
+    saveFamilyMembers,
+    updateDriveSync,
+    addSyncAlert
+  }
 }

@@ -74,6 +74,19 @@ app.whenReady().then(() => {
     return true
   })
 
+  ipcMain.handle('authenticateWithGoogle', async () => {
+    // TODO: Implement proper OAuth flow with Google
+    // For now, this returns an error message with setup instructions
+    throw new Error(
+      'Google Drive authentication is not yet configured. ' +
+      'To enable it, you need to:\n\n' +
+      '1. Create a Google OAuth 2.0 credential at https://console.cloud.google.com\n' +
+      '2. Set the redirect URI to: http://localhost:3000/oauth/callback\n' +
+      '3. Add your Client ID and Secret to the app configuration\n\n' +
+      'This feature will be available in a future update.'
+    )
+  })
+
   createWindow()
 
   app.on('activate', function () {

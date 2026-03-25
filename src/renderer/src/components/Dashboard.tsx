@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -10,9 +11,9 @@ import {
   Tooltip,
   Legend
 } from 'recharts'
-import { TrendingUp, TrendingDown, Minus, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, DollarSign, ArrowUpRight, ArrowDownRight, ChevronDown, X } from 'lucide-react'
 import { AppData } from '../types'
-import { formatCurrency, formatCurrencyShort, formatMonthLabel, formatMonthFull } from '../utils'
+import { formatCurrency, formatCurrencyShort, formatMonthLabel, formatMonthFull, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
 
 interface DashboardProps {
@@ -20,7 +21,11 @@ interface DashboardProps {
   onNavigate: (page: import('../types').Page) => void
 }
 
-function computeMonthStats(data: AppData) {
+function computeMonthStats(
+  data: AppData,
+  filterFamilyMembers?: Set<string>,
+  filterAccountIds?: Set<string>
+) {
   const sorted = [...data.snapshots].sort((a, b) => a.date.localeCompare(b.date))
   return sorted.map((snapshot) => {
     let assets = 0
@@ -28,6 +33,11 @@ function computeMonthStats(data: AppData) {
     for (const entry of snapshot.entries) {
       const account = data.accounts.find((a) => a.id === entry.accountId)
       if (!account) continue
+
+      // Apply filters - both must pass if both are set
+      if (filterFamilyMembers && !filterFamilyMembers.has(account.owner || 'unassigned')) continue
+      if (filterAccountIds && !filterAccountIds.has(account.id)) continue
+
       if (account.type === 'asset') assets += entry.balance
       else liabilities += entry.balance
     }
@@ -55,7 +65,19 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
   const fmt = (v: number) => formatCurrency(v, currency)
   const fmtShort = (v: number) => formatCurrencyShort(v, currency)
 
-  const stats = computeMonthStats(data)
+  const [selectedFamilyMembers, setSelectedFamilyMembers] = useState<Set<string>>(new Set())
+  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
+  const [showFilters, setShowFilters] = useState(false)
+
+  // Get unique family members and accounts
+  const familyMembers = [...new Set(data.accounts.map((a) => a.owner).filter(Boolean) as string[])]
+  const hasFilters = selectedFamilyMembers.size > 0 || selectedAccounts.size > 0
+
+  // Apply filters
+  const filterFamilyMembers = selectedFamilyMembers.size > 0 ? selectedFamilyMembers : undefined
+  const filterAccountIds = selectedAccounts.size > 0 ? selectedAccounts : undefined
+
+  const stats = computeMonthStats(data, filterFamilyMembers, filterAccountIds)
   const latest = stats[stats.length - 1]
   const prev = stats[stats.length - 2]
 
@@ -69,15 +91,106 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
-        {latest && (
-          <p className="text-sm text-gray-500 mt-0.5">As of {formatMonthFull(latest.date)}</p>
-        )}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+          {latest && (
+            <p className="text-sm text-gray-500 mt-0.5">As of {formatMonthFull(latest.date)}</p>
+          )}
+        </div>
+        <div className="relative">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={cn(
+              'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              hasFilters
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                : 'bg-white/5 text-gray-400 hover:bg-white/10'
+            )}
+          >
+            Filter
+            {hasFilters && <span className="ml-1 text-xs">{selectedFamilyMembers.size + selectedAccounts.size}</span>}
+            <ChevronDown size={14} />
+          </button>
+          {showFilters && (
+            <div className="absolute right-0 mt-2 w-72 bg-[#14141f] border border-white/10 rounded-xl shadow-lg z-50">
+              <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
+                {/* Family Members */}
+                {familyMembers.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">Family Members</h3>
+                    <div className="space-y-1.5">
+                      {familyMembers.map((member) => (
+                        <label key={member} className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={selectedFamilyMembers.has(member)}
+                            onChange={(e) => {
+                              const updated = new Set(selectedFamilyMembers)
+                              if (e.target.checked) updated.add(member)
+                              else updated.delete(member)
+                              setSelectedFamilyMembers(updated)
+                            }}
+                            className="rounded w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-300 group-hover:text-white">{member}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Accounts */}
+                {data.accounts.length > 0 && (
+                  <div className={familyMembers.length > 0 ? 'border-t border-white/10 pt-4' : ''}>
+                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">Accounts</h3>
+                    <div className="space-y-1.5">
+                      {data.accounts.map((account) => (
+                        <label key={account.id} className="flex items-center gap-2 cursor-pointer group">
+                          <input
+                            type="checkbox"
+                            checked={selectedAccounts.has(account.id)}
+                            onChange={(e) => {
+                              const updated = new Set(selectedAccounts)
+                              if (e.target.checked) updated.add(account.id)
+                              else updated.delete(account.id)
+                              setSelectedAccounts(updated)
+                            }}
+                            className="rounded w-4 h-4"
+                          />
+                          <span className="text-sm text-gray-300 group-hover:text-white truncate">
+                            {account.name}
+                            {account.owner && <span className="text-gray-500 ml-1">({account.owner})</span>}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Clear button */}
+                {hasFilters && (
+                  <div className="border-t border-white/10 pt-3">
+                    <button
+                      onClick={() => {
+                        setSelectedFamilyMembers(new Set())
+                        setSelectedAccounts(new Set())
+                      }}
+                      className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-gray-200 py-1.5"
+                    >
+                      <X size={13} />
+                      Clear filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className={`grid gap-4 ${currentLiabilities > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
         <SummaryCard
           label="Net Worth"
           value={fmt(currentNetWorth)}
@@ -99,12 +212,14 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           icon={<TrendingUp size={18} />}
           accent="emerald"
         />
-        <SummaryCard
-          label="Total Liabilities"
-          value={fmt(currentLiabilities)}
-          icon={<TrendingDown size={18} />}
-          accent="red"
-        />
+        {currentLiabilities > 0 && (
+          <SummaryCard
+            label="Total Liabilities"
+            value={fmt(currentLiabilities)}
+            icon={<TrendingDown size={18} />}
+            accent="red"
+          />
+        )}
         <SummaryCard
           label="MoM Change"
           value={
@@ -164,6 +279,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           </ChartCard>
 
           {/* Assets vs Liabilities */}
+          {currentLiabilities > 0 && (
           <ChartCard title="Assets vs Liabilities">
             <ResponsiveContainer width="100%" height={260}>
               <AreaChart data={stats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
@@ -223,6 +339,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>
+          )}
         </>
       )}
     </div>
