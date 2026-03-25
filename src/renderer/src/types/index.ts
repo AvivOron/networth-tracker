@@ -38,7 +38,7 @@ export interface AppData {
   income?: IncomeSource[]
 }
 
-export type ExpenseCategory = 'housing' | 'childcare' | 'subscriptions' | 'insurance' | 'utilities' | 'transport' | 'pets' | 'other'
+export type ExpenseCategory = 'housing' | 'childcare' | 'subscriptions' | 'insurance' | 'utilities' | 'transport' | 'pets' | 'groceries' | 'lifestyle' | 'other'
 
 export interface RecurringExpense {
   id: string

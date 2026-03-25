@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import {
   Plus, Pencil, Trash2, X, Check,
   Home, Baby, RefreshCw, Shield, Zap, Car, PawPrint, MoreHorizontal,
-  ToggleLeft, ToggleRight
+  ToggleLeft, ToggleRight, ShoppingCart, Sparkles
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -51,6 +51,8 @@ export const CATEGORY_CONFIG: Record<ExpenseCategory, { label: string; icon: Rea
   utilities:     { label: 'Utilities',     icon: <Zap size={14} />,          color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   transport:     { label: 'Transport',     icon: <Car size={14} />,          color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
   pets:          { label: 'Pets',          icon: <PawPrint size={14} />,     color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
+  groceries:     { label: 'Groceries',     icon: <ShoppingCart size={14} />, color: 'text-green-400 bg-green-500/10 border-green-500/20' },
+  lifestyle:     { label: 'Lifestyle',     icon: <Sparkles size={14} />,     color: 'text-orange-400 bg-orange-500/10 border-orange-500/20' },
   other:         { label: 'Other',         icon: <MoreHorizontal size={14} />, color: 'text-gray-400 bg-gray-500/10 border-gray-500/20' }
 }
 
