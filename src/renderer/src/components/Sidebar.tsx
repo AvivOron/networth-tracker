@@ -31,9 +31,6 @@ export function Sidebar({ page, onNavigate }: SidebarProps) {
       {/* Title bar spacer for traffic lights */}
       <div className="drag h-20 flex flex-col justify-end pb-3 px-5">
         <div className="flex items-center gap-2.5 no-drag">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-            <span className="text-indigo-400 text-sm font-bold">₿</span>
-          </div>
           <span className="text-sm font-semibold text-white/90 tracking-tight">Finance Hub</span>
         </div>
       </div>
