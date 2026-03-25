@@ -207,22 +207,24 @@ export function SnapshotEntry({
 
         {/* Summary + Save */}
         <div className="bg-[#14141f] border border-white/5 rounded-xl p-5 space-y-3">
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Total Assets</p>
-              <p className="font-semibold text-emerald-400">{fmt(totalAssets)}</p>
+          {totalLiabilities > 0 && (
+            <div className="grid grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Total Assets</p>
+                <p className="font-semibold text-emerald-400">{fmt(totalAssets)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Total Liabilities</p>
+                <p className="font-semibold text-red-400">{fmt(totalLiabilities)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-0.5">Net Worth</p>
+                <p className={cn('font-bold text-base', netWorth >= 0 ? 'text-white' : 'text-red-400')}>
+                  {fmt(netWorth)}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Total Liabilities</p>
-              <p className="font-semibold text-red-400">{fmt(totalLiabilities)}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Net Worth</p>
-              <p className={cn('font-bold text-base', netWorth >= 0 ? 'text-white' : 'text-red-400')}>
-                {fmt(netWorth)}
-              </p>
-            </div>
-          </div>
+          )}
           <button
             onClick={handleSave}
             disabled={saving}

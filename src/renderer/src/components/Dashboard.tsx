@@ -191,21 +191,23 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
 
       {/* Summary Cards */}
       <div className={`grid gap-4 ${currentLiabilities > 0 ? 'grid-cols-4' : 'grid-cols-3'}`}>
-        <SummaryCard
-          label="Net Worth"
-          value={fmt(currentNetWorth)}
-          icon={<DollarSign size={18} />}
-          accent="indigo"
-          sub={
-            momChange !== null ? (
-              <span className={momChange >= 0 ? 'text-emerald-400' : 'text-red-400'}>
-                {momChange >= 0 ? <ArrowUpRight size={13} className="inline" /> : <ArrowDownRight size={13} className="inline" />}
-                {fmtShort(Math.abs(momChange))}
-                {momPct !== null && ` (${momPct > 0 ? '+' : ''}${momPct.toFixed(1)}%)`}
-              </span>
-            ) : null
-          }
-        />
+        {currentLiabilities > 0 && (
+          <SummaryCard
+            label="Net Worth"
+            value={fmt(currentNetWorth)}
+            icon={<DollarSign size={18} />}
+            accent="indigo"
+            sub={
+              momChange !== null ? (
+                <span className={momChange >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                  {momChange >= 0 ? <ArrowUpRight size={13} className="inline" /> : <ArrowDownRight size={13} className="inline" />}
+                  {fmtShort(Math.abs(momChange))}
+                  {momPct !== null && ` (${momPct > 0 ? '+' : ''}${momPct.toFixed(1)}%)`}
+                </span>
+              ) : null
+            }
+          />
+        )}
         <SummaryCard
           label="Total Assets"
           value={fmt(currentAssets)}
