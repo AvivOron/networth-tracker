@@ -40,7 +40,7 @@ export interface AppData {
   expenses?: RecurringExpense[]
 }
 
-export type ExpenseCategory = 'housing' | 'childcare' | 'subscriptions' | 'insurance' | 'utilities' | 'transport' | 'other'
+export type ExpenseCategory = 'housing' | 'childcare' | 'subscriptions' | 'insurance' | 'utilities' | 'transport' | 'pets' | 'other'
 
 export interface RecurringExpense {
   id: string

@@ -1,9 +1,19 @@
 import { useState } from 'react'
 import {
   Plus, Pencil, Trash2, X, Check,
-  Home, Baby, RefreshCw, Shield, Zap, Car, MoreHorizontal,
+  Home, Baby, RefreshCw, Shield, Zap, Car, PawPrint, MoreHorizontal,
   ToggleLeft, ToggleRight
 } from 'lucide-react'
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Cell
+} from 'recharts'
 import { RecurringExpense, ExpenseCategory } from '../types'
 import { generateId, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
@@ -40,6 +50,7 @@ export const CATEGORY_CONFIG: Record<ExpenseCategory, { label: string; icon: Rea
   insurance:     { label: 'Insurance',     icon: <Shield size={14} />,       color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
   utilities:     { label: 'Utilities',     icon: <Zap size={14} />,          color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
   transport:     { label: 'Transport',     icon: <Car size={14} />,          color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20' },
+  pets:          { label: 'Pets',          icon: <PawPrint size={14} />,     color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
   other:         { label: 'Other',         icon: <MoreHorizontal size={14} />, color: 'text-gray-400 bg-gray-500/10 border-gray-500/20' }
 }
 
@@ -49,8 +60,24 @@ function monthlyAmount(expense: RecurringExpense): number {
   return expense.billingCycle === 'yearly' ? expense.amount / 12 : expense.amount
 }
 
+function calculateCategoryData(expenses: RecurringExpense[]) {
+  const active = expenses.filter((e) => e.active)
+  const byCategory = active.reduce<Record<string, number>>((acc, expense) => {
+    const amount = monthlyAmount(expense)
+    acc[expense.category] = (acc[expense.category] ?? 0) + amount
+    return acc
+  }, {})
+
+  return Object.entries(byCategory).map(([category, amount]) => ({
+    name: category,
+    amount,
+    label: CATEGORY_CONFIG[category as ExpenseCategory]?.label ?? category
+  })).sort((a, b) => b.amount - a.amount)
+}
+
 export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
   const { currency } = useCurrency()
+  const fmt = (v: number) => formatCurrency(v, currency)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -60,6 +87,7 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
   const activeExpenses = expenses.filter((e) => e.active)
   const totalMonthly = activeExpenses.reduce((sum, e) => sum + monthlyAmount(e), 0)
   const totalYearly = totalMonthly * 12
+  const categoryData = calculateCategoryData(expenses)
 
   // Group all expenses by category
   const byCategory = CATEGORIES.reduce<Record<ExpenseCategory, RecurringExpense[]>>(
@@ -180,6 +208,48 @@ export function Expenses({ expenses, familyMembers, onSave }: ExpensesProps) {
           plain
         />
       </div>
+
+      {/* Category chart */}
+      {categoryData.length > 0 && (
+        <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 mb-8">
+          <h2 className="text-sm font-semibold text-gray-300 mb-6">Expenses by Category</h2>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: '#6b7280', fontSize: 11 }}
+                axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                tickLine={false}
+              />
+              <YAxis
+                tick={{ fill: '#6b7280', fontSize: 11 }}
+                axisLine={false}
+                tickLine={false}
+                width={72}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1a1a27',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: '10px',
+                  padding: '10px 14px'
+                }}
+                labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}
+                formatter={(v) => [fmt(v as number), 'Monthly Amount']}
+              />
+              <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]}>
+                {categoryData.map((entry, idx) => (
+                  <Cell
+                    key={`cell-${idx}`}
+                    fill={['#f59e0b', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#6366f1', '#0ea5e9'][idx % 7]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Category groups */}
       {expenses.length === 0 ? (

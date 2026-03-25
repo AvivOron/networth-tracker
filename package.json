@@ -13,7 +13,7 @@
   },
   "build": {
     "appId": "com.aviveron.networth-tracker",
-    "productName": "NetWorth Tracker",
+    "productName": "Finance Hub",
     "directories": {
       "buildResources": "build",
       "output": "dist"
@@ -34,7 +34,7 @@
       ]
     },
     "dmg": {
-      "title": "NetWorth Tracker"
+      "title": "Finance Hub"
     }
   },
   "dependencies": {

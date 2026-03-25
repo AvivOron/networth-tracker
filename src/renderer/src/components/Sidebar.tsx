@@ -8,12 +8,18 @@ interface SidebarProps {
   onNavigate: (page: Page) => void
 }
 
-const navItems: { id: Page; label: string; icon: React.ElementType }[] = [
+const trackingItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'accounts', label: 'Accounts', icon: Wallet },
   { id: 'snapshot', label: 'Enter Snapshot', icon: PlusCircle },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'expenses', label: 'Expenses', icon: Receipt },
+  { id: 'history', label: 'History', icon: History }
+]
+
+const expenseItems: { id: Page; label: string; icon: React.ElementType }[] = [
+  { id: 'expenses', label: 'Expenses', icon: Receipt }
+]
+
+const settingItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon }
 ]
 
@@ -27,27 +33,76 @@ export function Sidebar({ page, onNavigate }: SidebarProps) {
           <div className="w-7 h-7 rounded-lg bg-indigo-500/20 flex items-center justify-center">
             <span className="text-indigo-400 text-sm font-bold">₿</span>
           </div>
-          <span className="text-sm font-semibold text-white/90 tracking-tight">NetWorth</span>
+          <span className="text-sm font-semibold text-white/90 tracking-tight">Finance Hub</span>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
-        {navItems.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => onNavigate(id)}
-            className={cn(
-              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
-              page === id
-                ? 'bg-indigo-500/15 text-indigo-300'
-                : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
-            )}
-          >
-            <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
-            {label}
-          </button>
-        ))}
+      <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">
+        {/* Tracking Section */}
+        <div>
+          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-3 py-2 mb-2">Worth Tracking</h3>
+          <div className="space-y-0.5">
+            {trackingItems.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                  page === id
+                    ? 'bg-indigo-500/15 text-indigo-300'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                )}
+              >
+                <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Expenses Section */}
+        <div className="pt-2 border-t border-white/5">
+          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-3 py-2 mb-2">Management</h3>
+          <div className="space-y-0.5">
+            {expenseItems.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                  page === id
+                    ? 'bg-indigo-500/15 text-indigo-300'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                )}
+              >
+                <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Settings Section */}
+        <div className="pt-2 border-t border-white/5">
+          <div className="space-y-0.5">
+            {settingItems.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                  page === id
+                    ? 'bg-indigo-500/15 text-indigo-300'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                )}
+              >
+                <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </nav>
 
       {/* Footer */}
