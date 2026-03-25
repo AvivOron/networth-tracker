@@ -41,7 +41,9 @@ export class DriveSyncService {
         })
 
         if (!response.ok) {
-          throw new Error(`Drive upload failed: ${response.statusText}`)
+          const errorText = await response.text()
+          console.error('Drive upload error response:', errorText)
+          throw new Error(`Drive upload failed: ${response.statusText} - ${errorText}`)
         }
 
         const result = await response.json()
@@ -58,7 +60,9 @@ export class DriveSyncService {
         })
 
         if (!response.ok) {
-          throw new Error(`Drive update failed: ${response.statusText}`)
+          const errorText = await response.text()
+          console.error('Drive update error response:', errorText)
+          throw new Error(`Drive update failed: ${response.statusText} - ${errorText}`)
         }
       }
 
