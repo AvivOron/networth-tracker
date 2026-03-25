@@ -13,12 +13,9 @@ export default function App() {
   const {
     data,
     loading,
-    syncAlerts,
     saveAccounts,
     saveSnapshots,
-    saveFamilyMembers,
-    updateDriveSync,
-    reloadFromDrive
+    saveFamilyMembers
   } = useData()
   const [page, setPage] = useState<Page>('dashboard')
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
@@ -55,14 +52,6 @@ export default function App() {
         <Sidebar page={page} onNavigate={handleNavigate} />
 
         <main className="flex flex-1 overflow-hidden flex-col">
-          {/* Sync alerts */}
-          {syncAlerts.length > 0 && (
-            <div className="bg-yellow-900/20 border-b border-yellow-500/30 px-8 py-3 flex items-center gap-2 text-sm text-yellow-400">
-              <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 flex-shrink-0" />
-              {syncAlerts[0].message}
-            </div>
-          )}
-
           <div className="flex-1 overflow-y-auto">
             {page === 'dashboard' && (
               <Dashboard data={data} onNavigate={handleNavigate} />
@@ -92,7 +81,7 @@ export default function App() {
               />
             )}
             {page === 'settings' && (
-              <Settings data={data} onUpdateDriveSync={updateDriveSync} onReloadFromDrive={reloadFromDrive} />
+              <Settings data={data} />
             )}
           </div>
         </main>

@@ -116,7 +116,13 @@ app.whenReady().then(() => {
             }
 
             const tokenData = await tokenResponse.json()
+            console.log('Token response received:', { fields: Object.keys(tokenData) })
             const accessToken = tokenData.access_token
+            if (!accessToken) {
+              console.error('No access_token in response:', tokenData)
+              throw new Error('No access token in OAuth response')
+            }
+            console.log('Access token obtained, length:', accessToken.length)
 
             // Send success response
             res.writeHead(200, { 'Content-Type': 'text/html' })

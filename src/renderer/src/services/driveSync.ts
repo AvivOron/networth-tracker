@@ -54,55 +54,59 @@ export class DriveSyncService {
     try {
       let fileId = driveSync.fileId
 
+      // For creation, we need to send metadata first
       if (!fileId) {
-        // Create new file
-        const metadata = {
-          name: 'networth-tracker-data.json',
-          mimeType: 'application/json'
+        try {
+          const metadataResponse = await fetch(
+            'https://www.googleapis.com/drive/v3/files',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${driveSync.accessToken}`
+              },
+              body: JSON.stringify({
+                name: 'networth-tracker-data.json',
+                mimeType: 'application/json'
+              })
+            }
+          )
+
+          if (!metadataResponse.ok) {
+            const errorText = await metadataResponse.text()
+            console.error('Drive file creation error:', errorText)
+            throw new Error(`Failed to create file: ${metadataResponse.statusText}`)
+          }
+
+          const metadataResult = await metadataResponse.json()
+          fileId = metadataResult.id
+          console.log('File created with ID:', fileId)
+        } catch (err) {
+          console.error('File creation failed:', err)
+          throw err
         }
+      }
 
-        const form = new FormData()
-        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
-        form.append('file', new Blob([fileContent], { type: 'application/json' }))
-
-        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${driveSync.accessToken}`
-          },
-          body: form
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('Drive upload error response:', errorText)
-          throw new Error(`Drive upload failed: ${response.statusText} - ${errorText}`)
-        }
-
-        const result = await response.json()
-        console.log('Upload response:', result)
-        fileId = result.id
-        if (!fileId) {
-          console.error('No file ID in response:', result)
-          throw new Error('Google Drive did not return a file ID')
-        }
-      } else {
-        // Update existing file
-        const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+      // Now upload the file content
+      const response = await fetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,
+        {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${driveSync.accessToken}`
           },
           body: fileContent
-        })
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('Drive update error response:', errorText)
-          throw new Error(`Drive update failed: ${response.statusText} - ${errorText}`)
         }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Drive upload error response:', errorText)
+        throw new Error(`Drive upload failed: ${response.statusText} - ${errorText}`)
       }
+
+      console.log('File uploaded successfully')
 
       return {
         ...driveSync,
