@@ -19,6 +19,7 @@ import { useCurrency } from '../context/CurrencyContext'
 interface SidebarProps {
   page: Page
   onNavigate: (page: Page) => void
+  open?: boolean
   user: {
     name?: string | null
     email?: string | null
@@ -42,11 +43,15 @@ const settingItems: { id: Page; label: string; icon: React.ElementType }[] = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon }
 ]
 
-export function Sidebar({ page, onNavigate, user }: SidebarProps) {
+export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
   const { currency, setCurrency } = useCurrency()
 
   return (
-    <aside className="flex flex-col w-[220px] min-w-[220px] bg-[#0f0f18] border-r border-white/5 h-full">
+    <aside className={cn(
+      'flex flex-col w-[220px] min-w-[220px] bg-[#0f0f18] border-r border-white/5 h-full',
+      'fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:relative md:translate-x-0',
+      open ? 'translate-x-0' : '-translate-x-full'
+    )}>
       {/* Title */}
       <div className="h-16 flex flex-col justify-center px-5 border-b border-white/5">
         <div className="flex items-center gap-2.5">
@@ -152,7 +157,7 @@ export function Sidebar({ page, onNavigate, user }: SidebarProps) {
             )}
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => signOut({ callbackUrl: '/finance-hub' })}
             title="Sign out"
             className="p-1.5 rounded-md hover:bg-white/10 text-gray-500 hover:text-gray-300 transition-colors shrink-0"
           >

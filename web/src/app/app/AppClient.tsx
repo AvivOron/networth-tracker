@@ -34,6 +34,7 @@ export function AppClient({ user }: AppClientProps) {
 
   const [page, setPage] = useState<Page>('dashboard')
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   function handleEditSnapshot(id: string) {
     setEditingSnapshotId(id)
@@ -48,6 +49,7 @@ export function AppClient({ user }: AppClientProps) {
   function handleNavigate(p: Page) {
     if (p !== 'snapshot') setEditingSnapshotId(null)
     setPage(p)
+    setSidebarOpen(false)
   }
 
   if (loading) {
@@ -63,9 +65,30 @@ export function AppClient({ user }: AppClientProps) {
 
   return (
     <div className="flex h-screen bg-[#09090f] overflow-hidden">
-      <Sidebar page={page} onNavigate={handleNavigate} user={user} />
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <main className="flex flex-1 overflow-hidden flex-col">
+      <Sidebar page={page} onNavigate={handleNavigate} user={user} open={sidebarOpen} />
+
+      <main className="flex flex-1 overflow-hidden flex-col min-w-0">
+        {/* Mobile header */}
+        <div className="md:hidden flex items-center gap-3 px-4 h-14 border-b border-white/5 bg-[#0f0f18] shrink-0">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1.5 rounded-md text-gray-400 hover:text-gray-200 hover:bg-white/10 transition-colors"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+          <span className="text-sm font-semibold text-white/90">Finance Hub</span>
+        </div>
+
         <div className="flex-1 overflow-y-auto">
           {page === 'dashboard' && (
             <Dashboard data={data} onNavigate={handleNavigate} />
