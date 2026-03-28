@@ -12,15 +12,19 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   session: {
-    strategy: 'database'
+    strategy: 'jwt'
   },
   callbacks: {
+    jwt: ({ token, user }) => {
+      if (user) token.id = user.id
+      return token
+    },
     // Expose the user id in the session object
-    session: ({ session, user }) => ({
+    session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
-        id: user.id
+        id: token.id as string
       }
     })
   },
