@@ -144,8 +144,8 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
     form.name.trim() && parseFloat(form.grossAmount) > 0 && parseFloat(form.netAmount) > 0
 
   return (
-    <div className="px-8 py-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="px-4 py-6 md:px-8 md:py-8">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Income</h1>
           <p className="text-sm text-gray-500 mt-0.5">Track gross and net income sources</p>
@@ -192,7 +192,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
         </div>
       )}
 
-      <div className="grid grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
         <SummaryCard
           label="Total gross / month"
           value={formatCurrency(totalMonthlyGross, currency)}
@@ -287,23 +287,16 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                         )}
                       </div>
 
-                      <div className="flex items-center gap-3 ml-4 shrink-0">
+                      <div className="flex items-center gap-2 ml-3 shrink-0">
                         <div className="text-right">
-                          <div className="flex items-baseline gap-2">
-                            <div className="flex flex-col items-start">
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-sm font-semibold text-green-400">
-                                  {formatCurrency(source.grossAmount, currency)}
-                                </span>
-                                <span className="text-xs text-gray-600">gross</span>
-                              </div>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                {source.billingCycle === 'yearly'
-                                  ? `${formatCurrency(source.grossAmount / 12, currency)}/mo`
-                                  : `${formatCurrency(source.grossAmount * 12, currency)}/yr`}
-                              </p>
+                          <div className="flex flex-col items-end gap-0.5 sm:flex-row sm:items-baseline sm:gap-2">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm font-semibold text-green-400">
+                                {formatCurrency(source.grossAmount, currency)}
+                              </span>
+                              <span className="text-xs text-gray-600">gross</span>
                             </div>
-                            <span className="text-xs text-gray-700">•</span>
+                            <span className="hidden sm:inline text-xs text-gray-700">•</span>
                             <div className="flex items-baseline gap-1">
                               <span className="text-sm font-semibold text-green-300">
                                 {formatCurrency(source.netAmount, currency)}
@@ -311,9 +304,14 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                               <span className="text-xs text-gray-600">net</span>
                             </div>
                           </div>
+                          <p className="text-xs text-gray-600 mt-0.5 text-right">
+                            {source.billingCycle === 'yearly'
+                              ? `${formatCurrency(source.grossAmount / 12, currency)}/mo`
+                              : `${formatCurrency(source.grossAmount * 12, currency)}/yr`}
+                          </p>
                         </div>
 
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           {deleteConfirm === source.id ? (
                             <div className="flex items-center gap-1">
                               <span className="text-xs text-gray-500 mr-1">Delete?</span>
@@ -504,7 +502,7 @@ function SummaryCard({
   return (
     <div className="bg-[#14141f] border border-white/5 rounded-xl px-5 py-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={cn('text-2xl font-bold tracking-tight', plain ? 'text-white' : 'text-green-400')}>
+      <p className={cn('text-lg md:text-2xl font-bold tracking-tight', plain ? 'text-white' : 'text-green-400')}>
         {value}
       </p>
       <p className="text-xs text-gray-600 mt-1">{sub}</p>
