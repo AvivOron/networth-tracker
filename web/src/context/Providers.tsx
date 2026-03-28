@@ -5,7 +5,7 @@ import { CurrencyProvider } from './CurrencyContext'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <SessionProvider basePath="/finance-hub/api/auth">
       <CurrencyProvider>{children}</CurrencyProvider>
     </SessionProvider>
   )
