@@ -124,6 +124,10 @@ Comment on liabilities. Debt-to-asset ratio, any red flags?
 Give 3–5 specific, prioritized action items the user should take. Be direct and concrete.`
 }
 
+function isAppData(data: any): data is AppData {
+  return Array.isArray(data.accounts) && Array.isArray(data.snapshots) && Array.isArray(data.familyMembers);
+}
+
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
@@ -136,7 +140,7 @@ export async function POST(request: Request) {
     where: { userId: session.user.id }
   })
 
-  const data = (userData?.data ?? { accounts: [], snapshots: [], familyMembers: [] }) as AppData
+  const data = isAppData(userData?.data) ? userData.data : { accounts: [], snapshots: [], familyMembers: [] };
 
   const prompt = buildPrompt(data, currency)
 
