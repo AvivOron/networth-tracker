@@ -7,9 +7,8 @@ export function LoginButton({ callbackUrl = '/finance-hub/app' }: { callbackUrl?
   const handleTourClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     console.log('Tour button clicked!')
-    const url = `${window.location.origin}/finance-hub/api/tour`
-    console.log('Navigating to:', url)
-    window.location.href = url
+    // Navigate to tour endpoint - use absolute path from domain root
+    window.location.href = '/finance-hub/api/tour'
   }
 
   return (
