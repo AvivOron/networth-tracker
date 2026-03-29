@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { generateMockData } from '@/lib/tour-data'
 import { DEMO_USER_EMAIL } from '@/lib/auth'
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     console.log('[Tour API] GET request received')
 
@@ -46,9 +46,8 @@ export async function GET(request: Request) {
       maxAge: 24 * 60 * 60
     })
 
-    // Redirect to app with session cookie
-    const baseUrl = new URL(request.url).origin
-    const response = NextResponse.redirect(new URL('/finance-hub/app', baseUrl))
+    // Redirect to app - use relative redirect for basePath compatibility
+    const response = NextResponse.redirect('/app')
 
     response.cookies.set('next-auth.session-token', token, {
       httpOnly: true,
