@@ -5,6 +5,8 @@ import { Plus, Pencil, Trash2, X, Check, TrendingUp, ToggleLeft, ToggleRight } f
 import { IncomeSource, FamilyMember } from '../types'
 import { generateId, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t, tn } from '@/translations'
 import { Modal } from './Accounts'
 
 interface IncomeProps {
@@ -41,6 +43,7 @@ function monthlyNet(source: IncomeSource): number {
 
 export function Income({ income, familyMembers: rawFamilyMembers, onSave }: IncomeProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -63,7 +66,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
 
   const byOwner: Record<string, IncomeSource[]> = {}
   filteredIncome.forEach((source) => {
-    const owner = source.owner || 'Unassigned'
+    const owner = source.owner || t('income.unassigned', lang)
     if (!byOwner[owner]) byOwner[owner] = []
     byOwner[owner].push(source)
   })
@@ -125,7 +128,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
       await onSave(updated)
       setShowModal(false)
     } catch (err) {
-      alert('Error saving income: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('income.error.save', lang) + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -147,21 +150,21 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
     <div className="px-4 py-6 md:px-8 md:py-8">
       <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Income</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Track gross and net income sources</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('income.title', lang)}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('income.subtitle', lang)}</p>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
         >
           <Plus size={15} />
-          Add Income
+          {t('income.addButton', lang)}
         </button>
       </div>
 
       {filteredIncome.some((s) => s.owner) && (
         <div className="flex items-center gap-2 mb-8 pb-4 border-b border-white/5">
-          <span className="text-xs font-medium text-gray-500">Filter by owner:</span>
+          <span className="text-xs font-medium text-gray-500">{t('income.filter.label', lang)}</span>
           <button
             onClick={() => setSelectedOwner(null)}
             className={cn(
@@ -171,7 +174,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                 : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
             )}
           >
-            All
+            {t('income.filter.all', lang)}
           </button>
           {familyMembers
             .filter((m) => !m.isChild)
@@ -194,27 +197,27 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 md:mb-8">
         <SummaryCard
-          label="Total gross / month"
+          label={t('income.summary.totalGrossMonth', lang)}
           value={formatCurrency(totalMonthlyGross, currency)}
-          sub={`${activeIncome.length} active income${activeIncome.length !== 1 ? 's' : ''}`}
+          sub={tn('income.summary.activeIncomes', activeIncome.length, lang)}
         />
         <SummaryCard
-          label="Total net / month"
+          label={t('income.summary.totalNetMonth', lang)}
           value={formatCurrency(totalMonthlyNet, currency)}
-          sub="take home"
+          sub={t('income.summary.takeHome', lang)}
         />
         <SummaryCard
-          label="Total gross / year"
+          label={t('income.summary.totalGrossYear', lang)}
           value={formatCurrency(totalYearlyGross, currency)}
-          sub="annualized"
+          sub={t('income.summary.annualized', lang)}
         />
         <SummaryCard
-          label="All sources"
+          label={t('income.summary.allSources', lang)}
           value={String(income.length)}
           sub={
             income.length - activeIncome.length > 0
-              ? `${income.length - activeIncome.length} paused`
-              : 'all active'
+              ? tn('income.summary.paused', income.length - activeIncome.length, lang)
+              : t('income.summary.allActive', lang)
           }
           plain
         />
@@ -225,14 +228,14 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
           <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
             <TrendingUp size={22} className="text-indigo-400" />
           </div>
-          <p className="text-sm font-medium text-gray-300 mb-1">No income sources yet</p>
-          <p className="text-xs text-gray-600 mb-5">Add salaries and other income sources</p>
+          <p className="text-sm font-medium text-gray-300 mb-1">{t('income.empty.title', lang)}</p>
+          <p className="text-xs text-gray-600 mb-5">{t('income.empty.message', lang)}</p>
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
           >
             <Plus size={14} />
-            Add your first income
+            {t('income.empty.addButton', lang)}
           </button>
         </div>
       ) : (
@@ -278,7 +281,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                           </p>
                           {source.billingCycle === 'yearly' && (
                             <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
-                              yearly
+                              {t('income.billing.yearly', lang)}
                             </span>
                           )}
                         </div>
@@ -294,27 +297,27 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                               <span className="text-sm font-semibold text-green-400">
                                 {formatCurrency(source.grossAmount, currency)}
                               </span>
-                              <span className="text-xs text-gray-600">gross</span>
+                              <span className="text-xs text-gray-600">{t('income.amount.gross', lang)}</span>
                             </div>
                             <span className="hidden sm:inline text-xs text-gray-700">•</span>
                             <div className="flex items-baseline gap-1">
                               <span className="text-sm font-semibold text-green-300">
                                 {formatCurrency(source.netAmount, currency)}
                               </span>
-                              <span className="text-xs text-gray-600">net</span>
+                              <span className="text-xs text-gray-600">{t('income.amount.net', lang)}</span>
                             </div>
                           </div>
                           <p className="text-xs text-gray-600 mt-0.5 text-right">
                             {source.billingCycle === 'yearly'
-                              ? `${formatCurrency(source.grossAmount / 12, currency)}/mo`
-                              : `${formatCurrency(source.grossAmount * 12, currency)}/yr`}
+                              ? `${formatCurrency(source.grossAmount / 12, currency)}${t('income.amount.perMonth', lang)}`
+                              : `${formatCurrency(source.grossAmount * 12, currency)}${t('income.amount.perYear', lang)}`}
                           </p>
                         </div>
 
                         <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                           {deleteConfirm === source.id ? (
                             <div className="flex items-center gap-1">
-                              <span className="text-xs text-gray-500 mr-1">Delete?</span>
+                              <span className="text-xs text-gray-500 mr-1">{t('income.deleteConfirm', lang)}</span>
                               <button
                                 onClick={() => handleDelete(source.id)}
                                 className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
@@ -333,7 +336,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                               <button
                                 onClick={() => handleToggleActive(source)}
                                 className="p-1.5 rounded-md hover:bg-white/10 text-gray-500 hover:text-gray-300 transition-colors"
-                                title={source.active ? 'Pause' : 'Activate'}
+                                title={source.active ? t('income.toggle.pause', lang) : t('income.toggle.activate', lang)}
                               >
                                 {source.active ? (
                                   <ToggleRight size={14} className="text-indigo-400" />
@@ -367,26 +370,26 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
 
       {showModal && (
         <Modal
-          title={editingId ? 'Edit Income' : 'New Income'}
+          title={editingId ? t('income.modal.editTitle', lang) : t('income.modal.newTitle', lang)}
           onClose={() => setShowModal(false)}
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('income.modal.nameLabel', lang)}</label>
               <input
                 autoFocus
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                placeholder="e.g. Main Job, Part-time…"
+                placeholder={t('income.modal.namePlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Gross amount</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('income.modal.grossAmountLabel', lang)}</label>
                 <input
                   type="number"
                   min="0"
@@ -398,7 +401,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Net amount</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('income.modal.netAmountLabel', lang)}</label>
                 <input
                   type="number"
                   min="0"
@@ -412,7 +415,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Billing cycle</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('income.modal.billingCycleLabel', lang)}</label>
               <div className="flex gap-2">
                 {(['monthly', 'yearly'] as const).map((cycle) => (
                   <button
@@ -425,7 +428,7 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                         : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20'
                     )}
                   >
-                    {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                    {cycle === 'monthly' ? t('income.modal.monthly', lang) : t('income.modal.yearly', lang)}
                   </button>
                 ))}
               </div>
@@ -434,14 +437,14 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
             {familyMembers.length > 0 && (
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                  Owner <span className="text-gray-600">(optional)</span>
+                  {t('income.modal.ownerLabel', lang)} <span className="text-gray-600">{t('income.modal.ownerOptional', lang)}</span>
                 </label>
                 <select
                   value={form.owner}
                   onChange={(e) => setForm({ ...form, owner: e.target.value })}
                   className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
                 >
-                  <option value="">Unassigned / shared</option>
+                  <option value="">{t('income.modal.ownerDefault', lang)}</option>
                   {familyMembers
                     .filter((m) => !m.isChild)
                     .map((m) => (
@@ -455,13 +458,13 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
 
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Notes <span className="text-gray-600">(optional)</span>
+                {t('income.modal.notesLabel', lang)} <span className="text-gray-600">{t('income.modal.notesOptional', lang)}</span>
               </label>
               <input
                 type="text"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="e.g. Annual review, depends on bonus…"
+                placeholder={t('income.modal.notesPlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
@@ -471,14 +474,14 @@ export function Income({ income, familyMembers: rawFamilyMembers, onSave }: Inco
                 onClick={() => setShowModal(false)}
                 className="flex-1 py-2 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-gray-200 hover:border-white/20 transition-colors"
               >
-                Cancel
+                {t('income.modal.cancel', lang)}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!isFormValid || saving}
                 className="flex-1 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm text-white font-medium transition-colors"
               >
-                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Income'}
+                {saving ? t('income.modal.saving', lang) : editingId ? t('income.modal.saveChanges', lang) : t('income.modal.addIncome', lang)}
               </button>
             </div>
           </div>

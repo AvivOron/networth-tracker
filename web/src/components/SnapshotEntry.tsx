@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Save, AlertCircle, ExternalLink } from 'luci
 import { Account, MonthlySnapshot, SnapshotEntry as SnapshotEntryType } from '../types'
 import { getCurrentMonth, generateId, formatMonthFull, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t } from '@/translations'
 import { ACCOUNT_KIND_CONFIG } from './Accounts'
 
 interface SnapshotEntryProps {
@@ -29,6 +31,7 @@ export function SnapshotEntry({
   onEditDone
 }: SnapshotEntryProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
   const currencySymbol = currency === 'NIS' ? '₪' : '$'
 
@@ -146,8 +149,8 @@ export function SnapshotEntry({
       <div className="flex-1 flex items-center justify-center px-8 py-8">
         <div className="text-center space-y-3">
           <AlertCircle size={36} className="mx-auto text-gray-600" />
-          <h3 className="text-base font-semibold text-white">No accounts set up</h3>
-          <p className="text-sm text-gray-500">Add some accounts first before recording a snapshot.</p>
+          <h3 className="text-base font-semibold text-white">{t('snapshot.empty.title', lang)}</h3>
+          <p className="text-sm text-gray-500">{t('snapshot.empty.message', lang)}</p>
         </div>
       </div>
     )
@@ -158,10 +161,10 @@ export function SnapshotEntry({
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
-            {editingSnapshotId ? 'Edit Snapshot' : 'Monthly Snapshot'}
+            {editingSnapshotId ? t('snapshot.title.edit', lang) : t('snapshot.title.new', lang)}
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {existingSnapshot ? 'Updating existing snapshot' : 'Record your current balances'}
+            {existingSnapshot ? t('snapshot.subtitle.existing', lang) : t('snapshot.subtitle.new', lang)}
           </p>
         </div>
 
@@ -177,7 +180,7 @@ export function SnapshotEntry({
           <div className="text-center">
             <p className="text-base font-semibold text-white">{formatMonthFull(month)}</p>
             {existingSnapshot && (
-              <p className="text-xs text-amber-400 mt-0.5">Snapshot exists — editing</p>
+              <p className="text-xs text-amber-400 mt-0.5">{t('snapshot.existingBadge', lang)}</p>
             )}
           </div>
           <button
@@ -191,25 +194,27 @@ export function SnapshotEntry({
 
         {assets.length > 0 && (
           <AccountSection
-            title="Assets"
+            title={t('snapshot.sectionAssets', lang)}
             color="emerald"
             accounts={assets}
             balances={balances}
             currencySymbol={currencySymbol}
             onChange={(id, val) => setBalances({ ...balances, [id]: val })}
             snapshot={existingSnapshot}
+            lang={lang}
           />
         )}
 
         {liabilities.length > 0 && (
           <AccountSection
-            title="Liabilities"
+            title={t('snapshot.sectionLiabilities', lang)}
             color="red"
             accounts={liabilities}
             balances={balances}
             currencySymbol={currencySymbol}
             onChange={(id, val) => setBalances({ ...balances, [id]: val })}
             snapshot={existingSnapshot}
+            lang={lang}
           />
         )}
 
@@ -218,15 +223,15 @@ export function SnapshotEntry({
           {totalLiabilities > 0 && (
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Total Assets</p>
+                <p className="text-xs text-gray-500 mb-0.5">{t('snapshot.summary.totalAssets', lang)}</p>
                 <p className="font-semibold text-emerald-400">{fmt(totalAssets)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Total Liabilities</p>
+                <p className="text-xs text-gray-500 mb-0.5">{t('snapshot.summary.totalLiabilities', lang)}</p>
                 <p className="font-semibold text-red-400">{fmt(totalLiabilities)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-0.5">Net Worth</p>
+                <p className="text-xs text-gray-500 mb-0.5">{t('snapshot.summary.netWorth', lang)}</p>
                 <p className={cn('font-bold text-base', netWorth >= 0 ? 'text-white' : 'text-red-400')}>
                   {fmt(netWorth)}
                 </p>
@@ -245,12 +250,12 @@ export function SnapshotEntry({
           >
             <Save size={15} />
             {saving
-              ? 'Saving…'
+              ? t('snapshot.button.saving', lang)
               : saved
-              ? 'Saved!'
+              ? t('snapshot.button.saved', lang)
               : existingSnapshot
-              ? 'Update Snapshot'
-              : 'Save Snapshot'}
+              ? t('snapshot.button.update', lang)
+              : t('snapshot.button.save', lang)}
           </button>
         </div>
       </div>
@@ -265,7 +270,8 @@ function AccountSection({
   balances,
   currencySymbol,
   onChange,
-  snapshot
+  snapshot,
+  lang
 }: {
   title: string
   color: 'emerald' | 'red'
@@ -274,6 +280,7 @@ function AccountSection({
   currencySymbol: string
   onChange: (id: string, val: string) => void
   snapshot?: MonthlySnapshot
+  lang: string
 }) {
   return (
     <div className="bg-[#14141f] border border-white/5 rounded-xl overflow-hidden">
@@ -300,7 +307,7 @@ function AccountSection({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
-                    title="Open vendor website"
+                    title={t('snapshot.tooltip.openVendor', lang)}
                   >
                     <ExternalLink size={12} />
                   </a>
@@ -322,8 +329,8 @@ function AccountSection({
               {kindConfig.subLabels.map((sub) => (
                 <div key={sub} className="flex items-center justify-between pl-5">
                   <span className="text-xs text-gray-500 capitalize">{sub}</span>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                  <div className={cn('relative', lang === 'he' ? 'right-3 pr-7' : 'left-3 pl-7')}>
+                    <span className={cn('absolute top-1/2 -translate-y-1/2 text-gray-500 text-sm', lang === 'he' ? 'right-3' : 'left-3')}>
                       {currencySymbol}
                     </span>
                     <input
@@ -333,7 +340,7 @@ function AccountSection({
                       value={balances[account.id + ':' + sub] ?? ''}
                       onChange={(e) => onChange(account.id + ':' + sub, e.target.value)}
                       placeholder="0"
-                      className="w-32 sm:w-40 bg-[#1c1c2a] border border-white/10 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right"
+                      className={cn('w-32 sm:w-40 bg-[#1c1c2a] border border-white/10 rounded-lg py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right', lang === 'he' ? 'pr-3 pl-7' : 'pl-7 pr-3')}
                     />
                   </div>
                 </div>
@@ -353,7 +360,7 @@ function AccountSection({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
-                      title="Open vendor website"
+                      title={t('snapshot.tooltip.openVendor', lang)}
                     >
                       <ExternalLink size={12} />
                     </a>
@@ -373,8 +380,8 @@ function AccountSection({
                   <p className="text-xs text-gray-600 truncate mt-0.5">{account.notes}</p>
                 )}
               </div>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+              <div className={cn('relative', lang === 'he' ? 'right-3 pr-7' : 'left-3 pl-7')}>
+                <span className={cn('absolute top-1/2 -translate-y-1/2 text-gray-500 text-sm', lang === 'he' ? 'right-3' : 'left-3')}>
                   {currencySymbol}
                 </span>
                 <input
@@ -384,7 +391,7 @@ function AccountSection({
                   value={balances[account.id] ?? ''}
                   onChange={(e) => onChange(account.id, e.target.value)}
                   placeholder="0"
-                  className="w-32 sm:w-40 bg-[#1c1c2a] border border-white/10 rounded-lg pl-7 pr-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right"
+                  className={cn('w-32 sm:w-40 bg-[#1c1c2a] border border-white/10 rounded-lg py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors text-right', lang === 'he' ? 'pr-3 pl-7' : 'pl-7 pr-3')}
                 />
               </div>
             </div>

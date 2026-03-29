@@ -5,6 +5,8 @@ import { Pencil, Trash2, X, Check, CalendarDays } from 'lucide-react'
 import { AppData, MonthlySnapshot } from '../types'
 import { formatMonthFull, formatCurrency, formatCurrencyShort } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t, tn } from '@/translations'
 
 interface HistoryProps {
   data: AppData
@@ -14,6 +16,7 @@ interface HistoryProps {
 
 export function History({ data, onSave, onEditSnapshot }: HistoryProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
   const fmtShort = (v: number) => formatCurrencyShort(v, currency)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -42,8 +45,8 @@ export function History({ data, onSave, onEditSnapshot }: HistoryProps) {
       <div className="flex-1 flex items-center justify-center px-8 py-8">
         <div className="text-center space-y-3">
           <CalendarDays size={36} className="mx-auto text-gray-600" />
-          <h3 className="text-base font-semibold text-white">No snapshots yet</h3>
-          <p className="text-sm text-gray-500">Record your first monthly snapshot to see history.</p>
+          <h3 className="text-base font-semibold text-white">{t('history.empty.title', lang)}</h3>
+          <p className="text-sm text-gray-500">{t('history.empty.message', lang)}</p>
         </div>
       </div>
     )
@@ -59,9 +62,9 @@ export function History({ data, onSave, onEditSnapshot }: HistoryProps) {
   return (
     <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-white tracking-tight">History</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">{t('history.title', lang)}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {sorted.length} snapshot{sorted.length !== 1 ? 's' : ''} recorded
+          {tn('history.subtitle', sorted.length, lang)}
         </p>
       </div>
 
@@ -70,19 +73,19 @@ export function History({ data, onSave, onEditSnapshot }: HistoryProps) {
           <thead>
             <tr className="border-b border-white/5">
               <th className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Month
+                {t('history.table.month', lang)}
               </th>
               <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Assets
+                {t('history.table.assets', lang)}
               </th>
               <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Liabilities
+                {t('history.table.liabilities', lang)}
               </th>
               <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Net Worth
+                {t('history.table.netWorth', lang)}
               </th>
               <th className="text-right px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                MoM Change
+                {t('history.table.momChange', lang)}
               </th>
               <th className="px-5 py-3.5" />
             </tr>
@@ -120,7 +123,7 @@ export function History({ data, onSave, onEditSnapshot }: HistoryProps) {
                   <div className="flex items-center justify-end gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     {deleteConfirm === snapshot.id ? (
                       <div className="flex items-center gap-1">
-                        <span className="text-xs text-gray-500 mr-1">Delete?</span>
+                        <span className="text-xs text-gray-500 mr-1">{t('history.deleteConfirm', lang)}</span>
                         <button
                           onClick={() => handleDelete(snapshot.id)}
                           className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"

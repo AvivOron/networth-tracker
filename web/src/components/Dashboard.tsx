@@ -17,6 +17,8 @@ import { TrendingUp, TrendingDown, Minus, DollarSign, ArrowUpRight, ArrowDownRig
 import { AppData } from '../types'
 import { formatCurrency, formatCurrencyShort, formatMonthLabel, formatMonthFull, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t, tn } from '@/translations'
 
 interface DashboardProps {
   data: AppData
@@ -62,6 +64,7 @@ const tooltipCursor = { fill: 'rgba(255,255,255,0.05)' }
 
 export function Dashboard({ data, onNavigate }: DashboardProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
   const fmtShort = (v: number) => formatCurrencyShort(v, currency)
 
@@ -92,9 +95,9 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
     <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8 space-y-6 md:space-y-8">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('dashboard.title', lang)}</h1>
           {latest && (
-            <p className="text-sm text-gray-500 mt-0.5">As of {formatMonthFull(latest.date)}</p>
+            <p className="text-sm text-gray-500 mt-0.5">{t('dashboard.asOf', lang).replace('{month}', formatMonthFull(latest.date))}</p>
           )}
         </div>
         <div className="relative">
@@ -107,7 +110,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
             )}
           >
-            Filter
+            {t('dashboard.filter.button', lang)}
             {hasFilters && (
               <span className="ml-1 text-xs">{selectedFamilyMembers.size + selectedAccounts.size}</span>
             )}
@@ -118,7 +121,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
               <div className="p-4 space-y-4 max-h-96 overflow-y-auto">
                 {familyMembers.length > 0 && (
                   <div>
-                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">Family Members</h3>
+                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">{t('dashboard.filter.familyMembersSection', lang)}</h3>
                     <div className="space-y-1.5">
                       {familyMembers.map((member) => (
                         <label key={member} className="flex items-center gap-2 cursor-pointer group">
@@ -141,7 +144,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
                 )}
                 {data.accounts.length > 0 && (
                   <div className={familyMembers.length > 0 ? 'border-t border-white/10 pt-4' : ''}>
-                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">Accounts</h3>
+                    <h3 className="text-xs font-semibold text-gray-300 uppercase mb-2">{t('dashboard.filter.accountsSection', lang)}</h3>
                     <div className="space-y-1.5">
                       {data.accounts.map((account) => (
                         <label key={account.id} className="flex items-center gap-2 cursor-pointer group">
@@ -177,7 +180,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
                       className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-gray-200 py-1.5"
                     >
                       <X size={13} />
-                      Clear filters
+                      {t('dashboard.filter.clearFilters', lang)}
                     </button>
                   </div>
                 )}
@@ -191,7 +194,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
       <div className={`grid gap-3 grid-cols-2 ${currentLiabilities > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
         {currentLiabilities > 0 && (
           <SummaryCard
-            label="Net Worth"
+            label={t('dashboard.card.netWorth', lang)}
             value={fmt(currentNetWorth)}
             icon={<DollarSign size={18} />}
             accent="indigo"
@@ -211,21 +214,21 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           />
         )}
         <SummaryCard
-          label="Total Assets"
+          label={t('dashboard.card.totalAssets', lang)}
           value={fmt(currentAssets)}
           icon={<TrendingUp size={18} />}
           accent="emerald"
         />
         {currentLiabilities > 0 && (
           <SummaryCard
-            label="Total Liabilities"
+            label={t('dashboard.card.totalLiabilities', lang)}
             value={fmt(currentLiabilities)}
             icon={<TrendingDown size={18} />}
             accent="red"
           />
         )}
         <SummaryCard
-          label="MoM Change"
+          label={t('dashboard.card.momChange', lang)}
           value={momChange !== null ? (momChange >= 0 ? '+' : '') + fmt(momChange) : '—'}
           icon={<Minus size={18} />}
           accent={momChange === null ? 'gray' : momChange >= 0 ? 'emerald' : 'red'}
@@ -233,7 +236,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
             momPct !== null ? (
               <span className={momChange! >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                 {momPct > 0 ? '+' : ''}
-                {momPct.toFixed(1)}% vs last month
+                {momPct.toFixed(1)}% {t('dashboard.card.momPct', lang)}
               </span>
             ) : null
           }
@@ -241,10 +244,10 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
       </div>
 
       {!hasData ? (
-        <EmptyState onNavigate={onNavigate} />
+        <EmptyState onNavigate={onNavigate} lang={lang} />
       ) : (
         <>
-          <ChartCard title="Net Worth Over Time">
+          <ChartCard title={t('dashboard.chart.netWorth', lang)}>
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={stats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -265,7 +268,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
                   contentStyle={tooltipStyle}
                   wrapperStyle={tooltipWrapperStyle}
                   labelStyle={tooltipLabelStyle}
-                  formatter={(v) => [fmt(v as number), 'Net Worth']}
+                  formatter={(v) => [fmt(v as number), t('dashboard.chart.netWorthTooltip', lang)]}
                   cursor={tooltipCursor}
                 />
                 <Line
@@ -281,7 +284,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           </ChartCard>
 
           {currentLiabilities > 0 && (
-            <ChartCard title="Assets vs Liabilities">
+            <ChartCard title={t('dashboard.chart.assetsVsLiabilities', lang)}>
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={stats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
@@ -315,13 +318,13 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
                     cursor={tooltipCursor}
                     formatter={(v, name) => [
                       fmt(v as number),
-                      name === 'assets' ? 'Assets' : 'Liabilities'
+                      name === 'assets' ? t('dashboard.chart.assetsLegend', lang) : t('dashboard.chart.liabilitiesLegend', lang)
                     ]}
                   />
                   <Legend
                     formatter={(v) => (
                       <span style={{ color: '#9ca3af', fontSize: 12 }}>
-                        {v === 'assets' ? 'Assets' : 'Liabilities'}
+                        {v === 'assets' ? t('dashboard.chart.assetsLegend', lang) : t('dashboard.chart.liabilitiesLegend', lang)}
                       </span>
                     )}
                   />
@@ -389,16 +392,16 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   )
 }
 
-function EmptyState({ onNavigate }: { onNavigate: (p: import('../types').Page) => void }) {
+function EmptyState({ onNavigate, lang }: { onNavigate: (p: import('../types').Page) => void; lang: string }) {
   return (
     <div className="bg-[#14141f] border border-white/5 rounded-xl p-12 flex flex-col items-center justify-center text-center space-y-4">
       <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
         <TrendingUp size={28} className="text-indigo-400" />
       </div>
       <div>
-        <h3 className="text-base font-semibold text-white">No data yet</h3>
+        <h3 className="text-base font-semibold text-white">{t('dashboard.empty.title', lang)}</h3>
         <p className="text-sm text-gray-500 mt-1 max-w-xs">
-          Add your accounts and record your first monthly snapshot to see your net worth trends.
+          {t('dashboard.empty.message', lang)}
         </p>
       </div>
       <div className="flex gap-3 pt-2">
@@ -406,13 +409,13 @@ function EmptyState({ onNavigate }: { onNavigate: (p: import('../types').Page) =
           onClick={() => onNavigate('accounts')}
           className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-gray-300 font-medium transition-colors"
         >
-          Set up accounts
+          {t('dashboard.empty.setupAccounts', lang)}
         </button>
         <button
           onClick={() => onNavigate('snapshot')}
           className="px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
         >
-          Enter first snapshot
+          {t('dashboard.empty.firstSnapshot', lang)}
         </button>
       </div>
     </div>

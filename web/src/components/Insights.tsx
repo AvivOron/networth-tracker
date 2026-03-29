@@ -4,6 +4,8 @@ import { useState, useRef } from 'react'
 import { Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
 import { AppData } from '../types'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t } from '@/translations'
 import { cn } from '../utils'
 
 interface InsightsProps {
@@ -76,6 +78,7 @@ function renderInline(text: string): React.ReactNode {
 
 export function Insights({ data }: InsightsProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const [content, setContent] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -97,7 +100,7 @@ export function Insights({ data }: InsightsProps) {
       const res = await fetch('/finance-hub/api/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currency }),
+        body: JSON.stringify({ currency, language: lang }),
         signal: controller.signal
       })
 
@@ -120,7 +123,7 @@ export function Insights({ data }: InsightsProps) {
       setGenerated(true)
     } catch (err: any) {
       if (err.name === 'AbortError') return
-      setError(err.message ?? 'Failed to generate insights')
+      setError(err.message ?? t('insights.error', lang))
     } finally {
       setLoading(false)
     }
@@ -132,9 +135,9 @@ export function Insights({ data }: InsightsProps) {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">AI Insights</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">{t('insights.title', lang)}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              Personalized financial advice based on your data
+              {t('insights.subtitle', lang)}
             </p>
           </div>
           {generated && !loading && (
@@ -143,7 +146,7 @@ export function Insights({ data }: InsightsProps) {
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm text-gray-400 hover:text-gray-200 transition-colors shrink-0"
             >
               <RefreshCw size={14} />
-              Refresh
+              {t('insights.refresh', lang)}
             </button>
           )}
         </div>
@@ -151,9 +154,9 @@ export function Insights({ data }: InsightsProps) {
         {!hasData ? (
           <div className="bg-[#14141f] border border-white/5 rounded-xl p-10 flex flex-col items-center text-center space-y-3">
             <AlertCircle size={32} className="text-gray-600" />
-            <h3 className="text-base font-semibold text-white">Not enough data yet</h3>
+            <h3 className="text-base font-semibold text-white">{t('insights.empty.title', lang)}</h3>
             <p className="text-sm text-gray-500 max-w-xs">
-              Add your accounts and record at least one monthly snapshot to generate insights.
+              {t('insights.empty.message', lang)}
             </p>
           </div>
         ) : !generated && !loading ? (
@@ -162,9 +165,9 @@ export function Insights({ data }: InsightsProps) {
               <Sparkles size={28} className="text-indigo-400" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Ready to analyze your finances</h3>
+              <h3 className="text-base font-semibold text-white">{t('insights.cta.title', lang)}</h3>
               <p className="text-sm text-gray-500 mt-1 max-w-xs">
-                Claude will review your accounts, net worth history, income, and expenses to give you personalized advice.
+                {t('insights.cta.message', lang)}
               </p>
             </div>
             <button
@@ -172,7 +175,7 @@ export function Insights({ data }: InsightsProps) {
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
             >
               <Sparkles size={15} />
-              Generate Insights
+              {t('insights.cta.button', lang)}
             </button>
           </div>
         ) : (
@@ -180,7 +183,7 @@ export function Insights({ data }: InsightsProps) {
             {loading && content === '' ? (
               <div className="flex items-center gap-3 text-gray-500 py-4">
                 <div className="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin shrink-0" />
-                <span className="text-sm">Analyzing your financial data…</span>
+                <span className="text-sm">{t('insights.loading', lang)}</span>
               </div>
             ) : (
               <div>
@@ -203,7 +206,7 @@ export function Insights({ data }: InsightsProps) {
         {/* Model attribution */}
         {(generated || loading) && !error && (
           <p className="text-xs text-gray-700 text-center">
-            Powered by Claude Opus · Not financial advice
+            {t('insights.attribution', lang)}
           </p>
         )}
       </div>

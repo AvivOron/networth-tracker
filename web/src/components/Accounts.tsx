@@ -7,6 +7,8 @@ import {
 } from 'lucide-react'
 import { Account, AccountKind, FamilyMember } from '../types'
 import { generateId, cn } from '../utils'
+import { useLanguage } from '@/context/LanguageContext'
+import { t } from '@/translations'
 
 interface AccountsProps {
   accounts: Account[]
@@ -66,6 +68,7 @@ const FAMILY_MEMBER_COLORS = [
 ]
 
 export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: AccountsProps) {
+  const { lang } = useLanguage()
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -131,7 +134,7 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
       }
       await onSave(updated)
     } catch (error) {
-      alert('Error saving account: ' + (error instanceof Error ? error.message : String(error)))
+      alert(t('accounts.error.save', lang) + (error instanceof Error ? error.message : String(error)))
     } finally {
       setSaving(false)
       setShowModal(false)
@@ -147,21 +150,21 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
     <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
       <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Accounts</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage your asset and liability categories</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('accounts.title', lang)}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('accounts.subtitle', lang)}</p>
         </div>
         <button
           onClick={() => openAdd()}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
         >
           <Plus size={15} />
-          Add Account
+          {t('accounts.addButton', lang)}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <AccountGroup
-          title="Assets"
+          title={t('accounts.group.assets', lang)}
           icon={<TrendingUp size={15} className="text-emerald-400" />}
           color="emerald"
           accounts={assets}
@@ -172,9 +175,10 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
           onDeleteRequest={(id) => setDeleteConfirm(id)}
           onDeleteConfirm={handleDelete}
           onDeleteCancel={() => setDeleteConfirm(null)}
+          lang={lang}
         />
         <AccountGroup
-          title="Liabilities"
+          title={t('accounts.group.liabilities', lang)}
           icon={<TrendingDown size={15} className="text-red-400" />}
           color="red"
           accounts={liabilities}
@@ -185,26 +189,27 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
           onDeleteRequest={(id) => setDeleteConfirm(id)}
           onDeleteConfirm={handleDelete}
           onDeleteCancel={() => setDeleteConfirm(null)}
+          lang={lang}
         />
       </div>
 
       {showModal && (
-        <Modal title={editingId ? 'Edit Account' : 'New Account'} onClose={() => setShowModal(false)}>
+        <Modal title={editingId ? t('accounts.modal.editTitle', lang) : t('accounts.modal.newTitle', lang)} onClose={() => setShowModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Account Name</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.nameLabel', lang)}</label>
               <input
                 autoFocus
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                placeholder="e.g. Checking Account"
+                placeholder={t('accounts.modal.namePlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Account Kind</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.kindLabel', lang)}</label>
               <div className="flex flex-col gap-2">
                 {ACCOUNT_KINDS.map((k) => (
                   <button
@@ -229,36 +234,36 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Type</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.typeLabel', lang)}</label>
               <div className="flex gap-2">
-                {(['asset', 'liability'] as const).map((t) => (
+                {(['asset', 'liability'] as const).map((t_) => (
                   <button
-                    key={t}
-                    onClick={() => setForm({ ...form, type: t })}
+                    key={t_}
+                    onClick={() => setForm({ ...form, type: t_ })}
                     className={cn(
                       'flex-1 py-2 rounded-lg text-sm font-medium border transition-all',
-                      form.type === t
-                        ? t === 'asset'
+                      form.type === t_
+                        ? t_ === 'asset'
                           ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                           : 'bg-red-500/15 border-red-500/30 text-red-300'
                         : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20'
                     )}
                   >
-                    {t === 'asset' ? 'Asset' : 'Liability'}
+                    {t_ === 'asset' ? t('accounts.modal.type.asset', lang) : t('accounts.modal.type.liability', lang)}
                   </button>
                 ))}
               </div>
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Owner <span className="text-gray-600">(optional)</span>
+                {t('accounts.modal.ownerLabel', lang)} <span className="text-gray-600">{t('accounts.modal.ownerOptional', lang)}</span>
               </label>
               <select
                 value={form.owner}
                 onChange={(e) => setForm({ ...form, owner: e.target.value })}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               >
-                <option value="">Select family member...</option>
+                <option value="">{t('accounts.modal.ownerPlaceholder', lang)}</option>
                 {familyMembers?.map((member) => (
                   <option key={member.name} value={member.name}>
                     {member.name}
@@ -268,25 +273,25 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Notes <span className="text-gray-600">(optional)</span>
+                {t('accounts.modal.notesLabel', lang)} <span className="text-gray-600">{t('accounts.modal.notesOptional', lang)}</span>
               </label>
               <textarea
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="e.g. Chase bank, joint account..."
+                placeholder={t('accounts.modal.notesPlaceholder', lang)}
                 rows={2}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors resize-none"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Vendor URL <span className="text-gray-600">(optional)</span>
+                {t('accounts.modal.urlLabel', lang)} <span className="text-gray-600">{t('accounts.modal.urlOptional', lang)}</span>
               </label>
               <input
                 type="url"
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="e.g. https://www.chase.com"
+                placeholder={t('accounts.modal.urlPlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
@@ -295,14 +300,14 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
                 onClick={() => setShowModal(false)}
                 className="flex-1 py-2 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-gray-200 hover:border-white/20 transition-colors"
               >
-                Cancel
+                {t('accounts.modal.cancel', lang)}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!form.name.trim() || saving}
                 className="flex-1 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm text-white font-medium transition-colors"
               >
-                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Create Account'}
+                {saving ? t('accounts.modal.saving', lang) : editingId ? t('accounts.modal.saveChanges', lang) : t('accounts.modal.create', lang)}
               </button>
             </div>
           </div>
@@ -323,7 +328,8 @@ function AccountGroup({
   onEdit,
   onDeleteRequest,
   onDeleteConfirm,
-  onDeleteCancel
+  onDeleteCancel,
+  lang
 }: {
   title: string
   icon: React.ReactNode
@@ -336,6 +342,7 @@ function AccountGroup({
   onDeleteRequest: (id: string) => void
   onDeleteConfirm: (id: string) => void
   onDeleteCancel: () => void
+  lang: string
 }) {
   return (
     <div className="bg-[#14141f] border border-white/5 rounded-xl overflow-hidden">
@@ -352,14 +359,14 @@ function AccountGroup({
           className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-200 transition-colors"
         >
           <Plus size={13} />
-          Add
+          {t(`accounts.group.addShort`, lang)}
         </button>
       </div>
 
       <div className="divide-y divide-white/5">
         {accounts.length === 0 ? (
           <div className="px-5 py-8 text-center">
-            <p className="text-sm text-gray-600">No {title.toLowerCase()} yet</p>
+            <p className="text-sm text-gray-600">{t(color === 'emerald' ? 'accounts.empty.assets' : 'accounts.empty.liabilities', lang)}</p>
             <button
               onClick={onAdd}
               className={cn(
@@ -369,7 +376,7 @@ function AccountGroup({
                   : 'text-red-500 hover:text-red-400'
               )}
             >
-              + Add {color === 'emerald' ? 'asset' : 'liability'}
+              {t(color === 'emerald' ? 'accounts.group.addAsset' : 'accounts.group.addLiability', lang)}
             </button>
           </div>
         ) : (
@@ -384,7 +391,7 @@ function AccountGroup({
                       target="_blank"
                       rel="noopener noreferrer"
                       className="shrink-0 p-1 text-gray-400 hover:text-indigo-400 transition-colors"
-                      title="Open vendor website"
+                      title={t('accounts.tooltip.openVendor', lang)}
                     >
                       <Globe size={13} />
                     </a>
@@ -416,7 +423,7 @@ function AccountGroup({
               <div className="flex items-center gap-1 ml-3 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                 {deleteConfirm === account.id ? (
                   <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-500 mr-1">Delete?</span>
+                    <span className="text-xs text-gray-500 mr-1">{t('accounts.deleteConfirm', lang)}</span>
                     <button
                       onClick={() => onDeleteConfirm(account.id)}
                       className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"

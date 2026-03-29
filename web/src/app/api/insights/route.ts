@@ -6,8 +6,11 @@ import { AppData, MonthlySnapshot } from '@/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-function buildPrompt(data: AppData, currency: string): string {
+function buildPrompt(data: AppData, currency: string, language: string = 'en'): string {
   const currencySymbol = currency === 'NIS' ? '₪' : '$'
+  const languageInstruction = language === 'he'
+    ? '\n\nIMPORTANT: You MUST respond entirely in Hebrew (עברית). Use Hebrew formatting and conventions.'
+    : ''
 
   // Net worth history
   const snapshots = [...data.snapshots].sort((a, b) => a.date.localeCompare(b.date))
@@ -73,7 +76,7 @@ function buildPrompt(data: AppData, currency: string): string {
     typeof m === 'string' ? m : `${m.name}${m.isChild ? ' (child)' : ''}`
   ).join(', ')
 
-  return `You are a personal financial advisor. Analyze the following financial data and provide clear, actionable insights and recommendations. Be specific, reference actual numbers from the data, and prioritize the most impactful advice. Use a friendly but professional tone. The user's currency is ${currency} (${currencySymbol}).
+  return `You are a personal financial advisor. Analyze the following financial data and provide clear, actionable insights and recommendations. Be specific, reference actual numbers from the data, and prioritize the most impactful advice. Use a friendly but professional tone. The user's currency is ${currency} (${currencySymbol}).${languageInstruction}
 
 ## Financial Data
 
@@ -134,7 +137,7 @@ export async function POST(request: Request) {
     return new Response('Unauthorized', { status: 401 })
   }
 
-  const { currency = 'NIS' } = await request.json()
+  const { currency = 'NIS', language = 'en' } = await request.json()
 
   const userData = await prisma.userData.findUnique({
     where: { userId: session.user.id }
@@ -142,9 +145,9 @@ export async function POST(request: Request) {
 
   const data = isAppData(userData?.data) ? userData.data : { accounts: [], snapshots: [], familyMembers: [] };
 
-  const prompt = buildPrompt(data, currency)
+  const prompt = buildPrompt(data, currency, language)
 
-  const stream = await client.messages.stream({
+  const stream = await client.messages.stream({ 
     model: 'claude-opus-4-6',
     max_tokens: 1500,
     messages: [{ role: 'user', content: prompt }]

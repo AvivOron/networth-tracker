@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { Download, Users, Plus, X, Baby, Cloud, Home, Copy, Check, LogOut, Trash2, Link, RefreshCw } from 'lucide-react'
 import { AppData, FamilyMember } from '../types'
 import { cn } from '../utils'
+import { useLanguage } from '@/context/LanguageContext'
+import { t } from '@/translations'
 import { Modal } from './Accounts'
 
 interface SettingsProps {
@@ -35,7 +37,7 @@ type HouseholdStatus =
 
 // ─── Household section component ─────────────────────────────────────────────
 
-function HouseholdSection() {
+function HouseholdSection({ lang }: { lang: string }) {
   const [state, setState] = useState<HouseholdStatus>({ status: 'loading' })
   const [copied, setCopied] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -388,6 +390,7 @@ function HouseholdSection() {
 // ─── Main Settings component ──────────────────────────────────────────────────
 
 export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
+  const { lang } = useLanguage()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [showFamilyModal, setShowFamilyModal] = useState(false)
@@ -414,9 +417,9 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      setSuccess('Data exported successfully!')
+      setSuccess(t('settings.backup.success', lang))
     } catch (err) {
-      setError(`Failed to export: ${err instanceof Error ? err.message : String(err)}`)
+      setError(`${t('settings.backup.errorPrefix', lang)}${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -454,7 +457,7 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
       setEditingMemberName(null)
       setShowFamilyModal(false)
     } catch (err) {
-      setError(`Failed to save member: ${err instanceof Error ? err.message : String(err)}`)
+      setError(`${t('settings.error.saveMember', lang)}${err instanceof Error ? err.message : String(err)}`)
     } finally {
       setSavingMember(false)
     }
@@ -464,19 +467,19 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
     try {
       await onSaveFamilyMembers(familyMembers.filter((m) => m.name !== memberName))
     } catch (err) {
-      setError(`Failed to remove member: ${err instanceof Error ? err.message : String(err)}`)
+      setError(`${t('settings.error.removeMember', lang)}${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configure app preferences</p>
+        <h1 className="text-2xl font-bold text-white tracking-tight">{t('settings.title', lang)}</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{t('settings.subtitle', lang)}</p>
       </div>
 
       {/* Household Sharing */}
-      <HouseholdSection />
+      <HouseholdSection lang={lang} />
 
       {/* Family Members */}
       <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 space-y-4">
@@ -486,9 +489,9 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
               <Users size={20} className="text-indigo-400" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">Family Members</h2>
+              <h2 className="text-base font-semibold text-white">{t('settings.family.title', lang)}</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Add family members to organize accounts, expenses, and income
+                {t('settings.family.description', lang)}
               </p>
             </div>
           </div>
@@ -497,13 +500,13 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
           >
             <Plus size={14} />
-            Add
+            {t('settings.family.addButton', lang)}
           </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {familyMembers.length === 0 ? (
-            <p className="text-xs text-gray-600">No family members added yet</p>
+            <p className="text-xs text-gray-600">{t('settings.family.empty', lang)}</p>
           ) : (
             familyMembers.map((member, index) => {
               const colorClass = FAMILY_MEMBER_COLORS[index % FAMILY_MEMBER_COLORS.length]
@@ -539,8 +542,8 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
             <Download size={20} className="text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-white">Data Backup</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Export your data as a JSON file</p>
+            <h2 className="text-base font-semibold text-white">{t('settings.backup.title', lang)}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{t('settings.backup.description', lang)}</p>
           </div>
         </div>
 
@@ -560,7 +563,7 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
           className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-white text-sm font-medium transition-colors"
         >
           <Download size={16} />
-          Export Data as JSON
+          {t('settings.backup.exportButton', lang)}
         </button>
       </div>
 
@@ -568,20 +571,20 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
       <div className="bg-white/5 border border-white/5 rounded-xl p-4 space-y-2">
         <div className="flex items-center gap-2 mb-3">
           <Cloud size={15} className="text-indigo-400" />
-          <h3 className="text-sm font-semibold text-gray-300">Data storage</h3>
+          <h3 className="text-sm font-semibold text-gray-300">{t('settings.howToBackup.title', lang)}</h3>
         </div>
         <ul className="text-xs text-gray-500 space-y-2">
           <li className="flex gap-2">
             <span className="text-indigo-400">•</span>
-            <span>Your data is automatically saved to the cloud on every change</span>
+            <span>{t('settings.howToBackup.step1', lang)}</span>
           </li>
           <li className="flex gap-2">
             <span className="text-indigo-400">•</span>
-            <span>Use "Export Data as JSON" to download a local backup at any time</span>
+            <span>{t('settings.howToBackup.step2', lang)}</span>
           </li>
           <li className="flex gap-2">
             <span className="text-indigo-400">•</span>
-            <span>Your data is private and only accessible when you're logged in</span>
+            <span>{t('settings.howToBackup.step3', lang)}</span>
           </li>
         </ul>
       </div>
@@ -589,19 +592,19 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
       {/* Add/Edit Family Member Modal */}
       {showFamilyModal && (
         <Modal
-          title={editingMemberName ? 'Edit Family Member' : 'Add Family Member'}
+          title={editingMemberName ? t('settings.modal.editTitle', lang) : t('settings.modal.addTitle', lang)}
           onClose={() => setShowFamilyModal(false)}
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('settings.modal.nameLabel', lang)}</label>
               <input
                 autoFocus
                 type="text"
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSaveFamilyMember()}
-                placeholder="e.g. John"
+                placeholder={t('settings.modal.namePlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
@@ -616,9 +619,9 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
                 )}
               >
                 <Baby size={14} />
-                <span>Mark as child</span>
+                <span>{t('settings.modal.markAsChild', lang)}</span>
               </button>
-              <p className="text-xs text-gray-600 mt-1.5">Children won't be shown in income filters</p>
+              <p className="text-xs text-gray-600 mt-1.5">{t('settings.modal.childNote', lang)}</p>
             </div>
             <div className="flex gap-2 pt-1">
               <button
@@ -629,14 +632,14 @@ export function Settings({ data, onSaveFamilyMembers }: SettingsProps) {
                 }}
                 className="flex-1 py-2 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-gray-200 hover:border-white/20 transition-colors"
               >
-                Cancel
+                {t('settings.modal.cancel', lang)}
               </button>
               <button
                 onClick={handleSaveFamilyMember}
                 disabled={!newMemberName.trim() || savingMember}
                 className="flex-1 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm text-white font-medium transition-colors"
               >
-                {savingMember ? 'Saving…' : editingMemberName ? 'Save Changes' : 'Add Member'}
+                {savingMember ? t('settings.modal.saving', lang) : editingMemberName ? t('settings.modal.saveChanges', lang) : t('settings.modal.addMember', lang)}
               </button>
             </div>
           </div>

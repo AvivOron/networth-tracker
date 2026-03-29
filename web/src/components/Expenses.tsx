@@ -19,6 +19,8 @@ import {
 import { RecurringExpense, ExpenseCategory, FamilyMember } from '../types'
 import { generateId, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '@/context/LanguageContext'
+import { t, tn } from '@/translations'
 import { Modal } from './Accounts'
 
 interface ExpensesProps {
@@ -85,6 +87,7 @@ function calculateCategoryData(expenses: RecurringExpense[]) {
 
 export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: ExpensesProps) {
   const { currency } = useCurrency()
+  const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
   const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -172,7 +175,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
       await onSave(updated)
       setShowModal(false)
     } catch (err) {
-      alert('Error saving expense: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('expenses.error.save', lang) + (err instanceof Error ? err.message : String(err)))
     } finally {
       setSaving(false)
     }
@@ -198,21 +201,21 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
     <div className="px-4 py-6 md:px-8 md:py-8">
       <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Recurring Expenses</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Track your fixed monthly costs</p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('expenses.title', lang)}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('expenses.subtitle', lang)}</p>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
         >
           <Plus size={15} />
-          Add Expense
+          {t('expenses.addButton', lang)}
         </button>
       </div>
 
       {familyMembers.length > 0 && (
         <div className="flex items-center gap-2 mb-8 pb-4 border-b border-white/5">
-          <span className="text-xs font-medium text-gray-500">Filter by owner:</span>
+          <span className="text-xs font-medium text-gray-500">{t('expenses.filter.label', lang)}</span>
           <button
             onClick={() => setSelectedOwner(null)}
             className={cn(
@@ -222,7 +225,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                 : 'bg-white/5 text-gray-400 border border-white/10 hover:border-white/20'
             )}
           >
-            All
+            {t('expenses.filter.all', lang)}
           </button>
           {familyMembers.map((member) => (
             <button
@@ -243,18 +246,18 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 md:mb-8">
         <SummaryCard
-          label="Total monthly"
+          label={t('expenses.summary.totalMonthly', lang)}
           value={formatCurrency(totalMonthly, currency)}
-          sub={`${activeExpenses.length} active expense${activeExpenses.length !== 1 ? 's' : ''}`}
+          sub={tn('expenses.summary.totalMonthlyActive', activeExpenses.length, lang)}
         />
-        <SummaryCard label="Total yearly" value={formatCurrency(totalYearly, currency)} sub="annualized" />
+        <SummaryCard label={t('expenses.summary.totalYearly', lang)} value={formatCurrency(totalYearly, currency)} sub={t('expenses.summary.totalYearlySub', lang)} />
         <SummaryCard
-          label="All expenses"
+          label={t('expenses.summary.allExpenses', lang)}
           value={String(expenses.length)}
           sub={
             expenses.length - activeExpenses.length > 0
-              ? `${expenses.length - activeExpenses.length} paused`
-              : 'all active'
+              ? tn('expenses.summary.paused', expenses.length - activeExpenses.length, lang)
+              : t('expenses.summary.allActive', lang)
           }
           plain
         />
@@ -262,7 +265,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
 
       {categoryData.length > 0 && (
         <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-6">Expenses by Category</h2>
+          <h2 className="text-sm font-semibold text-gray-300 mb-6">{t('expenses.chart.title', lang)}</h2>
           <div className="[&_svg]:cursor-pointer">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
@@ -288,7 +291,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                   }}
                   wrapperStyle={{ outline: 'none' }}
                   labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}
-                  formatter={(v) => [fmt(v as number), 'Monthly Amount']}
+                  formatter={(v) => [fmt(v as number), t('expenses.chart.tooltipLabel', lang)]}
                   cursor={{ fill: 'rgba(255,255,255,0.05)' }}
                 />
                 <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]} onClick={handleBarClick}>
@@ -314,16 +317,16 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
           <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mx-auto mb-4">
             <RefreshCw size={22} className="text-indigo-400" />
           </div>
-          <p className="text-sm font-medium text-gray-300 mb-1">No recurring expenses yet</p>
+          <p className="text-sm font-medium text-gray-300 mb-1">{t('expenses.empty.title', lang)}</p>
           <p className="text-xs text-gray-600 mb-5">
-            Add subscriptions, rent, utilities and other fixed costs
+            {t('expenses.empty.message', lang)}
           </p>
           <button
             onClick={openAdd}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 text-sm text-white font-medium transition-colors"
           >
             <Plus size={14} />
-            Add your first expense
+            {t('expenses.empty.addButton', lang)}
           </button>
         </div>
       ) : (
@@ -370,7 +373,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                     {catMonthly > 0 && (
                       <span className="text-xs text-gray-400 font-medium">
                         {formatCurrency(catMonthly, currency)}
-                        <span className="text-gray-600">/mo</span>
+                        <span className="text-gray-600">{t('expenses.billing.perMonth', lang)}</span>
                       </span>
                     )}
                   </div>
@@ -396,7 +399,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                             </p>
                             {expense.billingCycle === 'yearly' && (
                               <span className="text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full px-2 py-0.5">
-                                yearly
+                                {t('expenses.billing.yearly', lang)}
                               </span>
                             )}
                             {expense.owner && (
@@ -415,12 +418,12 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                             <p className="text-sm font-medium text-gray-200">
                               {formatCurrency(expense.amount, currency)}
                               <span className="text-xs text-gray-600 ml-1">
-                                /{expense.billingCycle === 'yearly' ? 'yr' : 'mo'}
+                                {expense.billingCycle === 'yearly' ? t('expenses.billing.perYear', lang) : t('expenses.billing.perMonth', lang)}
                               </span>
                             </p>
                             {expense.billingCycle === 'yearly' && (
                               <p className="text-xs text-gray-600">
-                                {formatCurrency(expense.amount / 12, currency)}/mo
+                                {formatCurrency(expense.amount / 12, currency)}{t('expenses.billing.perMonth', lang)}
                               </p>
                             )}
                           </div>
@@ -428,7 +431,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                           <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             {deleteConfirm === expense.id ? (
                               <div className="flex items-center gap-1">
-                                <span className="text-xs text-gray-500 mr-1">Delete?</span>
+                                <span className="text-xs text-gray-500 mr-1">{t('expenses.deleteConfirm', lang)}</span>
                                 <button
                                   onClick={() => handleDelete(expense.id)}
                                   className="p-1.5 rounded-md bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-colors"
@@ -447,7 +450,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                                 <button
                                   onClick={() => handleToggleActive(expense)}
                                   className="p-1.5 rounded-md hover:bg-white/10 text-gray-500 hover:text-gray-300 transition-colors"
-                                  title={expense.active ? 'Pause' : 'Activate'}
+                                  title={expense.active ? t('expenses.toggle.pause', lang) : t('expenses.toggle.activate', lang)}
                                 >
                                   {expense.active ? (
                                     <ToggleRight size={14} className="text-indigo-400" />
@@ -482,26 +485,26 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
 
       {showModal && (
         <Modal
-          title={editingId ? 'Edit Expense' : 'New Expense'}
+          title={editingId ? t('expenses.modal.editTitle', lang) : t('expenses.modal.newTitle', lang)}
           onClose={() => setShowModal(false)}
         >
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Name</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('expenses.modal.nameLabel', lang)}</label>
               <input
                 autoFocus
                 type="text"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                placeholder="e.g. Netflix, Kindergarten, Rent…"
+                placeholder={t('expenses.modal.namePlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Amount</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('expenses.modal.amountLabel', lang)}</label>
                 <input
                   type="number"
                   min="0"
@@ -513,7 +516,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Billing cycle</label>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('expenses.modal.billingCycleLabel', lang)}</label>
                 <div className="flex gap-2">
                   {(['monthly', 'yearly'] as const).map((cycle) => (
                     <button
@@ -526,7 +529,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                           : 'bg-transparent border-white/10 text-gray-400 hover:border-white/20'
                       )}
                     >
-                      {cycle === 'monthly' ? 'Monthly' : 'Yearly'}
+                      {cycle === 'monthly' ? t('expenses.modal.monthly', lang) : t('expenses.modal.yearly', lang)}
                     </button>
                   ))}
                 </div>
@@ -534,7 +537,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Category</label>
+              <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('expenses.modal.categoryLabel', lang)}</label>
               <div className="grid grid-cols-2 gap-2">
                 {CATEGORIES.map((cat) => {
                   const cfg = CATEGORY_CONFIG[cat]
@@ -562,14 +565,14 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
             {familyMembers.length > 0 && (
               <div>
                 <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                  Owner <span className="text-gray-600">(optional)</span>
+                  {t('expenses.modal.ownerLabel', lang)} <span className="text-gray-600">{t('expenses.modal.ownerOptional', lang)}</span>
                 </label>
                 <select
                   value={form.owner}
                   onChange={(e) => setForm({ ...form, owner: e.target.value })}
                   className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
                 >
-                  <option value="">Everyone / shared</option>
+                  <option value="">{t('expenses.modal.ownerDefault', lang)}</option>
                   {familyMembers.map((m) => (
                     <option key={m.name} value={m.name}>
                       {m.name}
@@ -581,13 +584,13 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
 
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                Notes <span className="text-gray-600">(optional)</span>
+                {t('expenses.modal.notesLabel', lang)} <span className="text-gray-600">{t('expenses.modal.notesOptional', lang)}</span>
               </label>
               <input
                 type="text"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="e.g. 2 kids, premium plan…"
+                placeholder={t('expenses.modal.notesPlaceholder', lang)}
                 className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
               />
             </div>
@@ -597,14 +600,14 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                 onClick={() => setShowModal(false)}
                 className="flex-1 py-2 rounded-lg border border-white/10 text-sm text-gray-400 hover:text-gray-200 hover:border-white/20 transition-colors"
               >
-                Cancel
+                {t('expenses.modal.cancel', lang)}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!isFormValid || saving}
                 className="flex-1 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed text-sm text-white font-medium transition-colors"
               >
-                {saving ? 'Saving…' : editingId ? 'Save Changes' : 'Add Expense'}
+                {saving ? t('expenses.modal.saving', lang) : editingId ? t('expenses.modal.saveChanges', lang) : t('expenses.modal.addExpense', lang)}
               </button>
             </div>
           </div>

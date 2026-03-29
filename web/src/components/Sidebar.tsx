@@ -16,6 +16,8 @@ import {
 import { Page } from '../types'
 import { cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
+import { useLanguage } from '../context/LanguageContext'
+import { t } from '../translations'
 
 interface SidebarProps {
   page: Page
@@ -28,31 +30,62 @@ interface SidebarProps {
   }
 }
 
-const trackingItems: { id: Page; label: string; icon: React.ElementType }[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'accounts', label: 'Accounts', icon: Wallet },
-  { id: 'snapshot', label: 'Enter Snapshot', icon: PlusCircle },
-  { id: 'history', label: 'History', icon: History }
+type TrackingPage = 'dashboard' | 'accounts' | 'snapshot' | 'history'
+type ExpensePage = 'expenses' | 'income' | 'insights'
+type SettingPage = 'settings'
+
+const trackingLabelMap: Record<TrackingPage, string> = {
+  'dashboard': 'nav.dashboard',
+  'accounts': 'nav.accounts',
+  'snapshot': 'nav.snapshot',
+  'history': 'nav.history'
+}
+
+const expenseLabelMap: Record<ExpensePage, string> = {
+  'expenses': 'nav.expenses',
+  'income': 'nav.income',
+  'insights': 'nav.insights'
+}
+
+const settingLabelMap: Record<SettingPage, string> = {
+  'settings': 'nav.settings'
+}
+
+const trackingItems: { id: TrackingPage; icon: React.ElementType }[] = [
+  { id: 'dashboard', icon: LayoutDashboard },
+  { id: 'accounts', icon: Wallet },
+  { id: 'snapshot', icon: PlusCircle },
+  { id: 'history', icon: History }
 ]
 
-const expenseItems: { id: Page; label: string; icon: React.ElementType }[] = [
-  { id: 'expenses', label: 'Expenses', icon: Receipt },
-  { id: 'income', label: 'Income', icon: TrendingUp },
-  { id: 'insights', label: 'AI Insights', icon: Sparkles }
+const expenseItems: { id: ExpensePage; icon: React.ElementType }[] = [
+  { id: 'expenses', icon: Receipt },
+  { id: 'income', icon: TrendingUp },
+  { id: 'insights', icon: Sparkles }
 ]
 
-const settingItems: { id: Page; label: string; icon: React.ElementType }[] = [
-  { id: 'settings', label: 'Settings', icon: SettingsIcon }
+const settingItems: { id: SettingPage; icon: React.ElementType }[] = [
+  { id: 'settings', icon: SettingsIcon }
 ]
 
 export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
   const { currency, setCurrency } = useCurrency()
+  const { lang, setLang } = useLanguage()
+
+  const sidebarPositionClass = lang === 'he'
+    ? cn(
+      'fixed inset-y-0 right-0 z-50 transition-transform duration-200 md:relative md:translate-x-0',
+      open ? 'translate-x-0' : 'translate-x-full'
+    )
+    : cn(
+      'fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:relative md:translate-x-0',
+      open ? 'translate-x-0' : '-translate-x-full'
+    )
 
   return (
     <aside className={cn(
       'flex flex-col w-[220px] min-w-[220px] bg-[#0f0f18] border-r border-white/5 h-full',
-      'fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:relative md:translate-x-0',
-      open ? 'translate-x-0' : '-translate-x-full'
+      sidebarPositionClass
     )}>
       {/* Title */}
       <div className="h-16 flex flex-col justify-center px-5 border-b border-white/5">
@@ -66,10 +99,10 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
         {/* Tracking Section */}
         <div>
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-3 py-2 mb-2">
-            Worth Tracking
+            {t('nav.section.tracking', lang)}
           </h3>
           <div className="space-y-0.5">
-            {trackingItems.map(({ id, label, icon: Icon }) => (
+            {trackingItems.map(({ id, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
@@ -81,7 +114,7 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
                 )}
               >
                 <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
-                {label}
+                {t(trackingLabelMap[id], lang)}
               </button>
             ))}
           </div>
@@ -90,10 +123,10 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
         {/* Management Section */}
         <div className="pt-2 border-t border-white/5">
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-3 py-2 mb-2">
-            Management
+            {t('nav.section.management', lang)}
           </h3>
           <div className="space-y-0.5">
-            {expenseItems.map(({ id, label, icon: Icon }) => (
+            {expenseItems.map(({ id, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
@@ -105,7 +138,7 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
                 )}
               >
                 <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
-                {label}
+                {t(expenseLabelMap[id], lang)}
               </button>
             ))}
           </div>
@@ -114,7 +147,7 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
         {/* Settings Section */}
         <div className="pt-2 border-t border-white/5">
           <div className="space-y-0.5">
-            {settingItems.map(({ id, label, icon: Icon }) => (
+            {settingItems.map(({ id, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => onNavigate(id)}
@@ -126,7 +159,7 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
                 )}
               >
                 <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
-                {label}
+                {t(settingLabelMap[id], lang)}
               </button>
             ))}
           </div>
@@ -167,24 +200,48 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
           </button>
         </div>
 
-        {/* Currency toggle */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-600">v0.1.0</p>
-          <div className="flex items-center bg-white/5 rounded-md p-0.5">
-            {(['NIS', 'USD'] as const).map((c) => (
-              <button
-                key={c}
-                onClick={() => setCurrency(c)}
-                className={cn(
-                  'text-xs px-2 py-0.5 rounded transition-colors',
-                  currency === c
-                    ? 'bg-indigo-500/30 text-indigo-300 font-medium'
-                    : 'text-gray-500 hover:text-gray-300'
-                )}
-              >
-                {c === 'NIS' ? '₪' : '$'}
-              </button>
-            ))}
+        {/* Toggles */}
+        <div className="space-y-3">
+          {/* Language toggle */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-600">Language</p>
+            <div className="flex items-center bg-white/5 rounded-md p-0.5">
+              {(['en', 'he'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={cn(
+                    'text-xs px-2 py-0.5 rounded transition-colors',
+                    lang === l
+                      ? 'bg-indigo-500/30 text-indigo-300 font-medium'
+                      : 'text-gray-500 hover:text-gray-300'
+                  )}
+                >
+                  {l === 'en' ? 'EN' : 'עב'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Currency toggle */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-600">v0.1.0</p>
+            <div className="flex items-center bg-white/5 rounded-md p-0.5">
+              {(['NIS', 'USD'] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setCurrency(c)}
+                  className={cn(
+                    'text-xs px-2 py-0.5 rounded transition-colors',
+                    currency === c
+                      ? 'bg-indigo-500/30 text-indigo-300 font-medium'
+                      : 'text-gray-500 hover:text-gray-300'
+                  )}
+                >
+                  {c === 'NIS' ? '₪' : '$'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

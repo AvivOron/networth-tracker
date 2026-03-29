@@ -11,6 +11,7 @@ import { Expenses } from '@/components/Expenses'
 import { Income } from '@/components/Income'
 import { Insights } from '@/components/Insights'
 import { useData } from '@/hooks/useData'
+import { useLanguage } from '@/context/LanguageContext'
 import { Page } from '@/types'
 
 interface AppClientProps {
@@ -32,6 +33,7 @@ export function AppClient({ user }: AppClientProps) {
     saveExpenses,
     saveIncome
   } = useData()
+  const { lang } = useLanguage()
 
   const [page, setPage] = useState<Page>('dashboard')
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export function AppClient({ user }: AppClientProps) {
   }
 
   return (
-    <div className="flex h-screen bg-[#09090f] overflow-hidden">
+    <div className="flex h-screen bg-[#09090f] overflow-hidden" dir={lang === 'he' ? 'rtl' : 'ltr'}>
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
