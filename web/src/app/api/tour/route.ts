@@ -54,13 +54,18 @@ export async function GET(request: Request) {
       }
     })
 
-    response.cookies.set('next-auth.session-token', token, {
+    const cookieName =
+      process.env.NODE_ENV === 'production'
+        ? '__Secure-next-auth.session-token'
+        : 'next-auth.session-token';
+
+    response.cookies.set(cookieName, token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 24 * 60 * 60,
-      path: '/'
-    })
+      path: '/',
+    });
 
     return response
   } catch (error) {
