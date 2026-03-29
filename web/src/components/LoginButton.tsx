@@ -7,8 +7,10 @@ export function LoginButton({ callbackUrl = '/finance-hub/app' }: { callbackUrl?
   const handleTourClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     console.log('Tour button clicked!')
-    // Navigate to tour endpoint - use absolute path from domain root
-    window.location.href = '/finance-hub/api/tour'
+    // Use different URLs for local dev vs production with rewrite
+    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    const url = isProduction ? '/api/tour' : '/finance-hub/api/tour'
+    window.location.href = url
   }
 
   return (
