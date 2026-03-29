@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
     })
   },
   pages: {
-    signIn: '/finance-hub',
-    error: '/finance-hub/auth/error'
+    signIn: '/',
+    error: '/auth/error'
   }
 }

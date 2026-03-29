@@ -1,6 +1,6 @@
 import { withAuth } from 'next-auth/middleware'
 
-const authMiddleware = withAuth({ pages: { signIn: '/finance-hub' } })
+const authMiddleware = withAuth({ pages: { signIn: '/' } })
 
 export default authMiddleware
 

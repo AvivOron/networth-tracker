@@ -7,9 +7,9 @@ export function LoginButton({ callbackUrl = '/finance-hub/app' }: { callbackUrl?
   const handleTourClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     console.log('Tour button clicked!')
-    // Use different URLs for local dev vs production with rewrite
-    const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-    const url = isProduction ? '/api/tour' : '/finance-hub/api/tour'
+    // Use /api/tour only on avivo.dev (has rewrite), otherwise use /finance-hub/api/tour
+    const isAvivoDomain = window.location.hostname.includes('avivo.dev')
+    const url = isAvivoDomain ? '/api/tour' : '/finance-hub/api/tour'
     window.location.href = url
   }
 
