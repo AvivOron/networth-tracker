@@ -40,14 +40,14 @@ function computeMonthStats(
       if (filterFamilyMembers && !filterFamilyMembers.has(account.owner || 'unassigned')) continue
       if (filterAccountIds && !filterAccountIds.has(account.id)) continue
       if (account.type === 'asset') assets += entry.balance
-      else liabilities += entry.balance
+      else liabilities += Math.abs(entry.balance) // liabilities are now positive
     }
     return {
       date: snapshot.date,
       label: formatMonthLabel(snapshot.date),
       assets,
       liabilities,
-      netWorth: assets - liabilities
+      netWorth: assets - liabilities // liabilities are now positive
     }
   })
 }
@@ -191,8 +191,8 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className={`grid gap-3 grid-cols-2 ${currentLiabilities > 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
-        {currentLiabilities > 0 && (
+      <div className={`grid gap-3 grid-cols-2 ${currentLiabilities !== 0 ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+        {currentLiabilities !== 0 && (
           <SummaryCard
             label={t('dashboard.card.netWorth', lang)}
             value={fmt(currentNetWorth)}
@@ -219,7 +219,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           icon={<TrendingUp size={18} />}
           accent="emerald"
         />
-        {currentLiabilities > 0 && (
+        {currentLiabilities !== 0 && (
           <SummaryCard
             label={t('dashboard.card.totalLiabilities', lang)}
             value={fmt(currentLiabilities)}
@@ -283,7 +283,7 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
             </ResponsiveContainer>
           </ChartCard>
 
-          {currentLiabilities > 0 && (
+          {currentLiabilities !== 0 && (
             <ChartCard title={t('dashboard.chart.assetsVsLiabilities', lang)}>
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={stats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>

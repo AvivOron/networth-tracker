@@ -20,6 +20,7 @@ interface AppClientProps {
     name?: string | null
     email?: string | null
     image?: string | null
+    isDemo?: boolean
   }
 }
 
@@ -76,7 +77,7 @@ export function AppClient({ user }: AppClientProps) {
         />
       )}
 
-      <Sidebar page={page} onNavigate={handleNavigate} user={user} open={sidebarOpen} />
+      <Sidebar page={page} onNavigate={handleNavigate} user={user} open={sidebarOpen} isDemo={user.isDemo} />
 
       <main className="flex flex-1 overflow-hidden flex-col min-w-0">
         {/* Mobile header */}

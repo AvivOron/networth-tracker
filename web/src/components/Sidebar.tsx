@@ -23,6 +23,7 @@ interface SidebarProps {
   page: Page
   onNavigate: (page: Page) => void
   open?: boolean
+  isDemo?: boolean
   user: {
     name?: string | null
     email?: string | null
@@ -68,7 +69,7 @@ const settingItems: { id: SettingPage; icon: React.ElementType }[] = [
   { id: 'settings', icon: SettingsIcon }
 ]
 
-export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
+export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) {
   const { currency, setCurrency } = useCurrency()
   const { lang, setLang } = useLanguage()
 
@@ -93,6 +94,19 @@ export function Sidebar({ page, onNavigate, open, user }: SidebarProps) {
           <span className="text-sm font-semibold text-white/90 tracking-tight">Finance Hub</span>
         </div>
       </div>
+
+      {/* Demo Mode Banner */}
+      {isDemo && (
+        <div className="px-3 py-3 border-b border-white/5 bg-amber-500/10">
+          <div className="flex items-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-amber-400 shrink-0">
+              <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" fill="currentColor" />
+            </svg>
+            <p className="text-xs font-medium text-amber-300">Demo Mode</p>
+          </div>
+          <p className="text-[10px] text-amber-200/70 mt-1">This is sample data. Sign in to use your own.</p>
+        </div>
+      )}
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-3 space-y-4 overflow-y-auto">

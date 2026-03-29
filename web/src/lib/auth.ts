@@ -3,6 +3,8 @@ import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
 
+export const DEMO_USER_EMAIL = 'tour-demo@finance-hub.local'
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -16,15 +18,19 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     jwt: ({ token, user }) => {
-      if (user) token.id = user.id
+      if (user) {
+        token.id = user.id
+        token.isDemo = user.email === DEMO_USER_EMAIL
+      }
       return token
     },
-    // Expose the user id in the session object
+    // Expose the user id and demo status in the session object
     session: ({ session, token }) => ({
       ...session,
       user: {
         ...session.user,
-        id: token.id as string
+        id: token.id as string,
+        isDemo: token.isDemo as boolean
       }
     })
   },
