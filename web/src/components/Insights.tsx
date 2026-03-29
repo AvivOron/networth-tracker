@@ -88,8 +88,6 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
   const [translating, setTranslating] = useState(false)
   const [insightsLanguage, setInsightsLanguage] = useState<'en' | 'he' | null>(null)
   const abortRef = useRef<AbortController | null>(null)
-  const streamCancelRef = useRef(false)
-  const [clearing, setClearing] = useState(false)
 
   const hasData = data.snapshots.length > 0 || data.accounts.length > 0
   const isDemo = user?.isDemo ?? false
@@ -100,30 +98,17 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
     const aiInsights = (data as any).aiInsights
     if (aiInsights && aiInsights.content) {
       setInsightsLanguage(aiInsights.language || 'en')
-      // Stream the content for animation effect
-      streamContent(aiInsights.content)
+      setContent(aiInsights.content)
       setGenerated(true)
     }
   }, [])
 
-  async function streamContent(fullContent: string) {
-    streamCancelRef.current = false
-    setContent('')
-    const chunkSize = 8
-    for (let i = 0; i < fullContent.length; i += chunkSize) {
-      if (streamCancelRef.current) return
-      await new Promise(resolve => setTimeout(resolve, 10))
-      setContent(fullContent.slice(0, i + chunkSize))
-    }
-  }
-
   async function generate() {
     if (abortRef.current) abortRef.current.abort()
-    streamCancelRef.current = true
     const controller = new AbortController()
     abortRef.current = controller
 
-    setClearing(true)
+
     setLoading(true)
     setError(null)
     setContent('')
@@ -151,7 +136,7 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
         const { done, value } = await reader.read()
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
-        setClearing(false)
+
         setContent(accumulated)
       }
 
@@ -171,7 +156,6 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
       setError(err.message ?? t('insights.error', lang))
     } finally {
       setLoading(false)
-      setClearing(false)
     }
   }
 
@@ -179,6 +163,8 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
     if (!content || !insightsLanguage || insightsLanguage === lang) return
 
     setTranslating(true)
+
+    setContent('')
     setError(null)
 
     try {
@@ -205,6 +191,7 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
         const { done, value } = await reader.read()
         if (done) break
         accumulated += decoder.decode(value, { stream: true })
+
         setContent(accumulated)
       }
 
@@ -278,7 +265,7 @@ export function Insights({ data, user, onSaveInsights }: InsightsProps) {
           </div>
         ) : (
           <div className="bg-[#14141f] border border-white/5 rounded-xl p-5 md:p-6 overflow-hidden">
-            {clearing || (loading && content === '') || (translating && !content) ? (
+            {(loading || translating) && !content ? (
               <div className="flex items-center gap-3 text-gray-500 py-4">
                 <div className="w-4 h-4 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin shrink-0" />
                 <span className="text-sm">
