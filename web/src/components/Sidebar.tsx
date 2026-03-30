@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { signOut } from 'next-auth/react'
+import { useState } from 'react'
 import {
   LayoutDashboard,
   PlusCircle,
@@ -11,7 +12,8 @@ import {
   Receipt,
   TrendingUp,
   Sparkles,
-  LogOut
+  LogOut,
+  Loader2
 } from 'lucide-react'
 import { Page } from '../types'
 import { cn } from '../utils'
@@ -72,6 +74,7 @@ const settingItems: { id: SettingPage; icon: React.ElementType }[] = [
 export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) {
   const { currency, setCurrency } = useCurrency()
   const { lang, setLang } = useLanguage()
+  const [signingOut, setSigningOut] = useState(false)
 
   const sidebarPositionClass = lang === 'he'
     ? cn(
@@ -206,11 +209,12 @@ export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) 
             )}
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: '/finance-hub' })}
+            onClick={() => { if (!signingOut) { setSigningOut(true); signOut({ callbackUrl: '/finance-hub' }) } }}
+            disabled={signingOut}
             title="Sign out"
-            className="p-1.5 rounded-md hover:bg-white/10 text-gray-500 hover:text-gray-300 transition-colors shrink-0"
+            className="p-1.5 rounded-md hover:bg-white/10 text-gray-500 hover:text-gray-300 transition-colors shrink-0 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            <LogOut size={14} />
+            {signingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
           </button>
         </div>
 
