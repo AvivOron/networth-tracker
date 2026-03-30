@@ -26,6 +26,7 @@ interface SidebarProps {
   onNavigate: (page: Page) => void
   open?: boolean
   isDemo?: boolean
+  onRestartTour?: () => void
   user: {
     name?: string | null
     email?: string | null
@@ -71,7 +72,7 @@ const settingItems: { id: SettingPage; icon: React.ElementType }[] = [
   { id: 'settings', icon: SettingsIcon }
 ]
 
-export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) {
+export function Sidebar({ page, onNavigate, open, isDemo, onRestartTour, user }: SidebarProps) {
   const { currency, setCurrency } = useCurrency()
   const { lang, setLang } = useLanguage()
   const [signingOut, setSigningOut] = useState(false)
@@ -107,7 +108,17 @@ export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) 
             </svg>
             <p className="text-xs font-medium text-amber-300">Demo Mode</p>
           </div>
-          <p className="text-[10px] text-amber-200/70 mt-1">This is sample data. Sign in to use your own.</p>
+          <div className="flex items-center justify-between mt-1">
+            <p className="text-[10px] text-amber-200/70">This is sample data. Sign in to use your own.</p>
+            {onRestartTour && (
+              <button
+                onClick={onRestartTour}
+                className="text-[10px] text-amber-300/70 hover:text-amber-300 underline underline-offset-2 transition-colors shrink-0 ml-2"
+              >
+                Replay tour
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -122,6 +133,7 @@ export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) 
             {trackingItems.map(({ id, icon: Icon }) => (
               <button
                 key={id}
+                id={`tour-nav-${id}`}
                 onClick={() => onNavigate(id)}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
@@ -146,6 +158,7 @@ export function Sidebar({ page, onNavigate, open, isDemo, user }: SidebarProps) 
             {expenseItems.map(({ id, icon: Icon }) => (
               <button
                 key={id}
+                id={`tour-nav-${id}`}
                 onClick={() => onNavigate(id)}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',

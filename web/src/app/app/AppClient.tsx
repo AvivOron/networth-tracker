@@ -10,6 +10,8 @@ import { Settings } from '@/components/Settings'
 import { Expenses } from '@/components/Expenses'
 import { Income } from '@/components/Income'
 import { Insights } from '@/components/Insights'
+import { OnboardingModal } from '@/components/OnboardingModal'
+import { TourOverlay } from '@/components/TourOverlay'
 import { useData } from '@/hooks/useData'
 import { useLanguage } from '@/context/LanguageContext'
 import { Page } from '@/types'
@@ -23,6 +25,9 @@ interface AppClientProps {
     isDemo?: boolean
   }
 }
+
+const ONBOARDING_KEY = 'finance-hub:onboarding-done'
+const TOUR_KEY = 'finance-hub:tour-done'
 
 export function AppClient({ user }: AppClientProps) {
   const {
@@ -40,6 +45,44 @@ export function AppClient({ user }: AppClientProps) {
   const [page, setPage] = useState<Page>('dashboard')
   const [editingSnapshotId, setEditingSnapshotId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Onboarding: show for real users until they have accounts OR permanently dismiss
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof window === 'undefined') return false
+    if (user.isDemo) return false
+    if (localStorage.getItem(ONBOARDING_KEY)) return false
+    return true // will be re-evaluated after data loads, but start visible for new users
+  })
+
+  // Hide onboarding once accounts exist (unless permanently dismissed)
+  // We derive this after data loads — handled in render below
+
+  // Tour: show for demo users who haven't completed it
+  const [showTour, setShowTour] = useState(() => {
+    if (typeof window === 'undefined') return false
+    if (!user.isDemo) return false
+    return !localStorage.getItem(TOUR_KEY)
+  })
+
+  function handleOnboardingComplete() {
+    // Just close — will re-show on next login if still no accounts
+    setShowOnboarding(false)
+  }
+
+  function handleOnboardingDismissPermanently() {
+    localStorage.setItem(ONBOARDING_KEY, '1')
+    setShowOnboarding(false)
+  }
+
+  function handleTourComplete() {
+    localStorage.setItem(TOUR_KEY, '1')
+    setShowTour(false)
+  }
+
+  function handleRestartTour() {
+    localStorage.removeItem(TOUR_KEY)
+    setShowTour(true)
+  }
 
   function handleEditSnapshot(id: string) {
     setEditingSnapshotId(id)
@@ -70,6 +113,22 @@ export function AppClient({ user }: AppClientProps) {
 
   return (
     <div className="flex h-screen bg-[#09090f] overflow-hidden" dir={lang === 'he' ? 'rtl' : 'ltr'}>
+      {showOnboarding && data.accounts.length === 0 && (
+        <OnboardingModal
+          onComplete={handleOnboardingComplete}
+          onDismissPermanently={handleOnboardingDismissPermanently}
+          onNavigate={handleNavigate}
+          initialFamilyMembers={data.familyMembers}
+          onSaveFamilyMembers={saveFamilyMembers}
+        />
+      )}
+      {showTour && (
+        <TourOverlay
+          onComplete={handleTourComplete}
+          onNavigate={handleNavigate}
+          currentPage={page}
+        />
+      )}
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -78,7 +137,7 @@ export function AppClient({ user }: AppClientProps) {
         />
       )}
 
-      <Sidebar page={page} onNavigate={handleNavigate} user={user} open={sidebarOpen} isDemo={user.isDemo} />
+      <Sidebar page={page} onNavigate={handleNavigate} user={user} open={sidebarOpen} isDemo={user.isDemo} onRestartTour={user.isDemo ? handleRestartTour : undefined} />
 
       <main className="flex flex-1 overflow-hidden flex-col min-w-0">
         {/* Mobile header */}
