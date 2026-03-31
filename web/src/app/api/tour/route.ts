@@ -33,6 +33,8 @@ export async function GET(request: Request) {
       }
     })
 
+    const now = Math.floor(Date.now() / 1000)
+
     // Create a JWT token
     const token = await encode({
       token: {
@@ -40,10 +42,11 @@ export async function GET(request: Request) {
         email: user.email,
         name: user.name,
         id: user.id,
-        isDemo: true
+        isDemo: true,
+        iat: now,
+        exp: now + 24 * 60 * 60
       },
       secret: process.env.NEXTAUTH_SECRET!,
-      maxAge: 24 * 60 * 60
     })
 
     // Redirect to app - return location header without establishing absolute URL
