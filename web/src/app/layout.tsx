@@ -4,7 +4,7 @@ import { Providers } from '@/context/Providers'
 import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.avivo.dev/finance-hub'),
+  metadataBase: new URL('https://www.avivo.dev'),
   title: {
     default: 'Finance Hub',
     template: '%s | Finance Hub',
