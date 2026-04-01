@@ -16,6 +16,7 @@ export const metadata: Metadata = {
     siteName: 'Finance Hub',
     title: 'Finance Hub',
     description: 'Track your net worth, recurring expenses, and income — all in one place.',
+    images: [{ url: 'https://www.avivo.dev/finance-hub/opengraph-image', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
