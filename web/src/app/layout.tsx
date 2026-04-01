@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <Providers>{children}</Providers>
-        <Analytics />
+        <Analytics scriptSrc="https://va.vercel-scripts.com/v1/script.js" endpoint="https://vitals.vercel-insights.com/v1/vitals" />
       </body>
     </html>
   )
