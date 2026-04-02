@@ -17,7 +17,7 @@ import {
   Cell
 } from 'recharts'
 import { RecurringExpense, ExpenseCategory, FamilyMember } from '../types'
-import { generateId, formatCurrency, cn } from '../utils'
+import { generateId, formatCurrency, formatCurrencyShort, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
 import { useLanguage } from '@/context/LanguageContext'
 import { t, tn } from '@/translations'
@@ -266,9 +266,9 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
       {categoryData.length > 0 && (
         <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 mb-8">
           <h2 className="text-sm font-semibold text-gray-300 mb-6">{t('expenses.chart.title', lang)}</h2>
-          <div className="[&_svg]:cursor-pointer">
+          <div className="[&_svg]:cursor-pointer" dir="ltr">
             <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis
                   dataKey="label"
@@ -280,7 +280,8 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                   tick={{ fill: '#6b7280', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  width={72}
+                  width={60}
+                  tickFormatter={(v) => formatCurrencyShort(v, currency)}
                 />
                 <Tooltip
                   contentStyle={{
