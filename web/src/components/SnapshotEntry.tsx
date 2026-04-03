@@ -524,14 +524,22 @@ function AccountSection({
                     </div>
                     {sub === 'investments' && onFileUpload && fileInputRefs ? (
                       <>
-                        <button
-                          onClick={() => fileInputRefs.current[`${account.id}:${sub}`]?.click()}
-                          disabled={uploadingFieldId === `${account.id}:${sub}`}
-                          className="p-2 rounded hover:bg-indigo-600/30 text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50"
-                          title={t('holdings.upload', lang)}
-                        >
-                          <Upload size={16} />
-                        </button>
+                        {(() => {
+                          const bankVendor = account.kind === 'bank' ? account.bankVendor : undefined
+                          const brokerageVendor = account.kind === 'brokerage' ? account.brokerageVendor : undefined
+                          const isDisabled = account.kind === 'bank' ? !bankVendor || bankVendor === 'other' : !brokerageVendor || brokerageVendor === 'other'
+                          const tooltipText = isDisabled ? t('holdings.vendorRequired', lang) : t('holdings.upload', lang)
+                          return (
+                            <button
+                              onClick={() => fileInputRefs.current[`${account.id}:${sub}`]?.click()}
+                              disabled={uploadingFieldId === `${account.id}:${sub}` || isDisabled}
+                              className="p-2 rounded hover:bg-indigo-600/30 text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50"
+                              title={tooltipText}
+                            >
+                              <Upload size={16} />
+                            </button>
+                          )
+                        })()}
                         <input
                           ref={(el) => {
                             if (el && fileInputRefs.current) fileInputRefs.current[`${account.id}:${sub}`] = el
@@ -605,14 +613,22 @@ function AccountSection({
                 </div>
                 {(account.kind === 'brokerage' || account.kind === 'bank') && onFileUpload && fileInputRefs ? (
                   <>
-                    <button
-                      onClick={() => fileInputRefs.current[account.id]?.click()}
-                      disabled={uploadingFieldId === `${account.id}:single`}
-                      className="p-2 rounded hover:bg-indigo-600/30 text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50"
-                      title={t('holdings.upload', lang)}
-                    >
-                      <Upload size={16} />
-                    </button>
+                    {(() => {
+                      const bankVendor = account.kind === 'bank' ? account.bankVendor : undefined
+                      const brokerageVendor = account.kind === 'brokerage' ? account.brokerageVendor : undefined
+                      const isDisabled = account.kind === 'bank' ? !bankVendor || bankVendor === 'other' : !brokerageVendor || brokerageVendor === 'other'
+                      const tooltipText = isDisabled ? t('holdings.vendorRequired', lang) : t('holdings.upload', lang)
+                      return (
+                        <button
+                          onClick={() => fileInputRefs.current[account.id]?.click()}
+                          disabled={uploadingFieldId === `${account.id}:single` || isDisabled}
+                          className="p-2 rounded hover:bg-indigo-600/30 text-indigo-400 hover:text-indigo-300 transition disabled:opacity-50"
+                          title={tooltipText}
+                        >
+                          <Upload size={16} />
+                        </button>
+                      )
+                    })()}
                     <input
                       ref={(el) => {
                         if (el && fileInputRefs.current) fileInputRefs.current[account.id] = el

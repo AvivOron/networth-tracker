@@ -1,5 +1,8 @@
 export type AccountKind = 'bank' | 'brokerage' | 'child' | 'piggyBank' | 'custom'
 
+export type BankVendor = 'poalim' | 'other'
+export type BrokerageVendor = 'excellence' | 'other'
+
 export interface Account {
   id: string
   name: string
@@ -13,6 +16,8 @@ export interface Account {
   feesOnBalance?: number // % of accumulated balance per year (e.g. pension management fee)
   feesOnDeposit?: number // % deducted from each deposit (e.g. pension deposit fee)
   description?: string // free text, e.g. investment portfolio details
+  bankVendor?: BankVendor // for bank accounts
+  brokerageVendor?: BrokerageVendor // for brokerage accounts
 }
 
 export interface SnapshotEntry {

@@ -236,17 +236,32 @@ export function Investments({ data, onSave }: InvestmentsProps) {
               {isExpanded && (
                 <div className="border-t border-slate-700 p-6 space-y-4 bg-slate-800/50">
                   {/* Upload section */}
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => fileInputRef.current[account.id]?.click()}
-                      disabled={loadingAccountId === account.id}
-                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded transition"
-                    >
-                      <Upload size={16} />
-                      {loadingAccountId === account.id ? 'Uploading...' : t('holdings.upload', lang)}
-                    </button>
+                  {(() => {
+                    const bankVendor = account.kind === 'bank' ? account.bankVendor : undefined
+                    const brokerageVendor = account.kind === 'brokerage' ? account.brokerageVendor : undefined
+                    const isDisabled = account.kind === 'bank' ? !bankVendor || bankVendor === 'other' : !brokerageVendor || brokerageVendor === 'other'
+                    const tooltipText = isDisabled ? t('holdings.vendorRequired', lang) : ''
+                    return (
+                      <>
+                        <div className="flex gap-3" title={tooltipText}>
+                          <button
+                            onClick={() => fileInputRef.current[account.id]?.click()}
+                            disabled={loadingAccountId === account.id || isDisabled}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded transition"
+                          >
+                            <Upload size={16} />
+                            {loadingAccountId === account.id ? 'Uploading...' : t('holdings.upload', lang)}
+                          </button>
 
-                  </div>
+                        </div>
+                        {isDisabled && (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded text-sm text-amber-300">
+                            {t('holdings.vendorNotSupported', lang)}
+                          </div>
+                        )}
+                      </>
+                    )
+                  })()}
 
                   <input
                     ref={(el) => {

@@ -28,9 +28,11 @@ type FormState = {
   feesOnBalance: string
   feesOnDeposit: string
   description: string
+  bankVendor: string
+  brokerageVendor: string
 }
 
-const emptyForm: FormState = { name: '', type: 'asset', kind: 'custom', owner: '', notes: '', url: '', monthlyDeposit: '', feesFixed: '', feesOnBalance: '', feesOnDeposit: '', description: '' }
+const emptyForm: FormState = { name: '', type: 'asset', kind: 'custom', owner: '', notes: '', url: '', monthlyDeposit: '', feesFixed: '', feesOnBalance: '', feesOnDeposit: '', description: '', bankVendor: '', brokerageVendor: '' }
 
 export const ACCOUNT_KIND_CONFIG: Record<
   Exclude<AccountKind, 'custom'>,
@@ -106,7 +108,9 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
       feesFixed: account.feesFixed != null ? String(account.feesFixed) : '',
       feesOnBalance: account.feesOnBalance != null ? String(account.feesOnBalance) : '',
       feesOnDeposit: account.feesOnDeposit != null ? String(account.feesOnDeposit) : '',
-      description: account.description ?? ''
+      description: account.description ?? '',
+      bankVendor: account.bankVendor ?? '',
+      brokerageVendor: account.brokerageVendor ?? ''
     })
     setShowModal(true)
   }
@@ -137,7 +141,9 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
                 feesFixed,
                 feesOnBalance,
                 feesOnDeposit,
-                description
+                description,
+                bankVendor: (form.bankVendor || undefined) as any,
+                brokerageVendor: (form.brokerageVendor || undefined) as any
               }
             : a
         )
@@ -154,7 +160,9 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
           feesFixed,
           feesOnBalance,
           feesOnDeposit,
-          description
+          description,
+          bankVendor: (form.bankVendor || undefined) as any,
+          brokerageVendor: (form.brokerageVendor || undefined) as any
         }
         updated = [...accounts, newAccount]
       }
@@ -268,6 +276,36 @@ export function Accounts({ accounts, familyMembers: rawFamilyMembers, onSave }: 
                 ))}
               </div>
             </div>
+            {form.kind === 'bank' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.vendorLabel', lang)}</label>
+                <select
+                  value={form.bankVendor}
+                  onChange={(e) => setForm({ ...form, bankVendor: e.target.value })}
+                  className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+                >
+                  <option value="">{t('accounts.modal.vendorPlaceholder', lang)}</option>
+                  <option value="poalim">{t('accounts.modal.vendor.poalim', lang)}</option>
+                  <option value="other">{t('accounts.modal.vendor.other', lang)}</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1.5">{t('accounts.modal.vendorHint', lang)}</p>
+              </div>
+            )}
+            {form.kind === 'brokerage' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.vendorLabel', lang)}</label>
+                <select
+                  value={form.brokerageVendor}
+                  onChange={(e) => setForm({ ...form, brokerageVendor: e.target.value })}
+                  className="w-full bg-[#1c1c2a] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition-colors"
+                >
+                  <option value="">{t('accounts.modal.vendorPlaceholder', lang)}</option>
+                  <option value="excellence">{t('accounts.modal.vendor.excellence', lang)}</option>
+                  <option value="other">{t('accounts.modal.vendor.other', lang)}</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1.5">{t('accounts.modal.vendorHint', lang)}</p>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">{t('accounts.modal.typeLabel', lang)}</label>
               <div className="flex gap-2">
