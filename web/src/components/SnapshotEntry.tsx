@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Save, AlertCircle, ExternalLink, Upload } from 'lucide-react'
-import { Account, MonthlySnapshot, SnapshotEntry as SnapshotEntryType, AppData, AccountHoldings } from '../types'
+import { Account, MonthlySnapshot, SnapshotEntry as SnapshotEntryType, AppData, AccountHoldings, Investment } from '../types'
 import { getCurrentMonth, generateId, formatMonthFull, formatCurrency, cn } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -172,7 +172,7 @@ export function SnapshotEntry({
         })
 
         // Preserve existing fees for papers that already exist (including from other accounts)
-        const holdingsWithPreservedFees = holdings.map((holding) => ({
+        const holdingsWithPreservedFees = holdings.map((holding: Investment) => ({
           ...holding,
           managementFee: allKnownFees.has(holding.paperNumber)
             ? allKnownFees.get(holding.paperNumber)

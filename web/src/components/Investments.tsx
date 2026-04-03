@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { Upload, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
-import { Account, AccountHoldings, AppData } from '../types'
+import { Account, AccountHoldings, AppData, Investment } from '../types'
 import { cn, formatCurrency } from '../utils'
 import { useCurrency } from '../context/CurrencyContext'
 import { useLanguage } from '@/context/LanguageContext'
@@ -73,7 +73,7 @@ export function Investments({ data, onSave }: InvestmentsProps) {
       })
 
       // Preserve existing fees for papers that already exist (including from other accounts)
-      const holdingsWithPreservedFees = holdings.map((holding) => ({
+      const holdingsWithPreservedFees = holdings.map((holding: Investment) => ({
         ...holding,
         managementFee: allKnownFees.has(holding.paperNumber)
           ? allKnownFees.get(holding.paperNumber)
