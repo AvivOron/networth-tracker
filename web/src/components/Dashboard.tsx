@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ResponsiveContainer,
   LineChart,
@@ -9,8 +9,6 @@ import {
   Area,
   BarChart,
   Bar,
-  PieChart,
-  Pie,
   Cell,
   XAxis,
   YAxis,
@@ -18,6 +16,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts'
+import { VictoryPie, VictoryLabel } from 'victory'
 import { TrendingUp, TrendingDown, Minus, DollarSign, ArrowUpRight, ArrowDownRight, ChevronDown, X, Wallet, Receipt } from 'lucide-react'
 import { AppData } from '../types'
 import { formatCurrency, formatCurrencyShort, formatMonthLabel, formatMonthFull, cn } from '../utils'
@@ -158,6 +157,14 @@ const tooltipCursor = { fill: 'rgba(255,255,255,0.05)' }
 export function Dashboard({ data, onNavigate }: DashboardProps) {
   const { currency } = useCurrency()
   const { lang } = useLanguage()
+
+  // Hide recharts active shape styling
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = '.recharts-active-shape { display: none !important; }'
+    document.head.appendChild(style)
+    return () => style.remove()
+  }, [])
   const fmt = (v: number) => formatCurrency(v, currency)
   const fmtShort = (v: number) => formatCurrencyShort(v, currency)
 
@@ -165,6 +172,16 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
   const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(new Set())
   const [showFilters, setShowFilters] = useState(false)
   const [selectedInvestmentCategory, setSelectedInvestmentCategory] = useState<string | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && selectedInvestmentCategory) {
+        setSelectedInvestmentCategory(null)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedInvestmentCategory])
 
   const familyMembers = [...new Set(data.accounts.map((a) => a.owner).filter(Boolean) as string[])]
   const hasFilters = selectedFamilyMembers.size > 0 || selectedAccounts.size > 0
@@ -566,38 +583,71 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
           {hasInvestments && (
             <>
             <ChartCard title={t('dashboard.chart.investmentBreakdown', lang)}>
-              <div dir="ltr">
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                  <Pie
+              <div dir="ltr" style={{ width: '100%', height: 280, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <svg viewBox="0 0 400 280" style={{ width: '100%', height: '100%', maxWidth: 400 }}>
+                  <VictoryPie
+                    standalone={false}
                     data={investmentPortfolio}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => {
-                      const pct = percent * 100
-                      return `${name} ${pct < 1 ? pct.toFixed(1) : pct.toFixed(0)}%`
+                    x="name"
+                    y="value"
+                    width={400}
+                    height={280}
+                    radius={({ datum }) => 80}
+                    colorScale={INVESTMENT_COLORS}
+                    labels={({ datum: d }) => {
+                      const pct = (d.value / investmentPortfolio.reduce((sum, item) => sum + item.value, 0)) * 100
+                      return `${d.name} ${pct < 1 ? pct.toFixed(1) : pct.toFixed(0)}%`
                     }}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    onClick={(entry) => setSelectedInvestmentCategory(entry.category)}
-                  >
-                    {investmentPortfolio.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={INVESTMENT_COLORS[index % INVESTMENT_COLORS.length]}
-                        style={{ cursor: 'pointer' }}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    wrapperStyle={tooltipWrapperStyle}
-                    formatter={(v) => fmt(v as number)}
+                    labelComponent={<VictoryLabel dy={0} textAnchor="middle" style={{ fill: '#e5e7eb', fontSize: 12, fontWeight: 500 }} />}
+                    animate={{
+                      duration: 600,
+                      onLoad: { duration: 600 }
+                    }}
+                    events={[
+                      {
+                        target: 'data',
+                        eventHandlers: {
+                          onMouseEnter: () => [
+                            {
+                              target: 'data',
+                              mutation: ({ style }: any) => ({
+                                style: { ...style, filter: 'brightness(1.15)' }
+                              })
+                            }
+                          ],
+                          onMouseLeave: () => [
+                            {
+                              target: 'data',
+                              mutation: ({ style }: any) => ({
+                                style: { ...style, filter: 'brightness(1)' }
+                              })
+                            }
+                          ],
+                          onClick: () => [
+                            {
+                              target: 'data',
+                              mutation: ({ datum }: any) => {
+                                setSelectedInvestmentCategory(datum.category)
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]}
+                    style={{
+                      data: {
+                        cursor: 'pointer',
+                        filter: 'brightness(1)',
+                        transition: 'filter 0.2s ease'
+                      },
+                      labels: {
+                        fill: '#e5e7eb',
+                        fontSize: 12,
+                        fontWeight: 500
+                      }
+                    }}
                   />
-                </PieChart>
-              </ResponsiveContainer>
+                </svg>
               </div>
             </ChartCard>
 
