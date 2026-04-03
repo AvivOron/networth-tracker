@@ -341,7 +341,8 @@ const translations: Record<string, { en: string; he: string }> = {
   'holdings.price': { en: 'Price', he: 'מחיר' },
   'holdings.value': { en: 'Value', he: 'שווי' },
   'holdings.gain': { en: 'Gain', he: 'רווח' },
-  'holdings.fee': { en: 'Fee %/yr', he: 'דמים %/שנה' },
+  'holdings.fee': { en: 'Fee %/yr', he: 'דמי ניהול % לשנה' },
+  'holdings.pct_portfolio': { en: '%', he: '% מהתיק' },
 
   // Common
   'common.loading': { en: 'Loading…', he: 'טוען...' },

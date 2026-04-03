@@ -403,6 +403,67 @@ export function generateMockData(): AppData {
         owner: 'Sarah',
         active: true
       }
+    ],
+    accountHoldings: [
+      {
+        accountId: 'brokerage-1',
+        updatedAt: today.toISOString(),
+        totalValueNIS: 320000,
+        holdings: [
+          {
+            paperNumber: '529000',
+            name: 'Mizrahi Tefahot Bank - Stock',
+            quantity: 150,
+            lastPrice: 765.50,
+            valueNIS: 114825,
+            costPrice: 680,
+            gainFromCostNIS: 12825,
+            gainFromCostPct: 12.5,
+            category: 'מניות ישראליות',
+            portfolioPct: 35.9,
+            managementFee: 0.35
+          },
+          {
+            paperNumber: '510114',
+            name: 'Tase-20 Index Fund ETF',
+            quantity: 400,
+            lastPrice: 310.20,
+            valueNIS: 124080,
+            costPrice: 290,
+            gainFromCostNIS: 8080,
+            gainFromCostPct: 6.9,
+            category: 'קרנות ומדדים',
+            portfolioPct: 38.8,
+            managementFee: 0.15
+          },
+          {
+            paperNumber: '512345',
+            name: 'Bank Hapoalim Bonds - AAA',
+            quantity: 50,
+            lastPrice: 1025,
+            valueNIS: 51250,
+            costPrice: 1000,
+            gainFromCostNIS: 1250,
+            gainFromCostPct: 2.5,
+            category: 'אגרות חוב',
+            portfolioPct: 16.0,
+            managementFee: 0.25
+          },
+          {
+            paperNumber: '513999',
+            name: 'Money Market Fund - Shekel',
+            quantity: 100,
+            lastPrice: 295.75,
+            valueNIS: 29575,
+            costPrice: 295,
+            gainFromCostNIS: 75,
+            gainFromCostPct: 0.25,
+            category: 'קרנות נזילות',
+            portfolioPct: 9.2,
+            managementFee: 0.05
+          }
+        ]
+      }
     ]
   }
 }

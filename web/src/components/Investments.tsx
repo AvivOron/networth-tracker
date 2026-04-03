@@ -291,7 +291,7 @@ export function Investments({ data, onSave }: InvestmentsProps) {
                               {t('holdings.fee', lang)}
                             </th>
                             <th className="px-3 py-2 text-right font-semibold text-slate-200">
-                              %
+                              {t('holdings.pct_portfolio', lang)}
                             </th>
                           </tr>
                         </thead>
