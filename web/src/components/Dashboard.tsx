@@ -28,6 +28,7 @@ interface DashboardProps {
   data: AppData
   onNavigate: (page: import('../types').Page) => void
   txSummary: { byExpense: Record<string, Record<string, number>>; byCategory: Record<string, Record<string, number>> } | null
+  properties?: import('../types').Property[]
 }
 
 function computeMonthStats(
@@ -163,7 +164,7 @@ function rollingAvg(byMonth: Record<string, number>, months: number): number | n
   return sum / recent.length
 }
 
-export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
+export function Dashboard({ data, onNavigate, txSummary, properties = [] }: DashboardProps) {
   const { currency } = useCurrency()
   const { lang } = useLanguage()
 
@@ -198,7 +199,16 @@ export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
   const filterFamilyMembers = selectedFamilyMembers.size > 0 ? selectedFamilyMembers : undefined
   const filterAccountIds = selectedAccounts.size > 0 ? selectedAccounts : undefined
 
-  const stats = computeMonthStats(data, filterFamilyMembers, filterAccountIds)
+  const totalPropertyValue = properties.reduce((s, p) => s + p.estimatedValue, 0)
+  const [showPropertyInChart, setShowPropertyInChart] = useState(false)
+
+  const baseStats = computeMonthStats(data, filterFamilyMembers, filterAccountIds)
+  const stats = baseStats.map(s => ({
+    ...s,
+    assets: s.assets + totalPropertyValue,
+    netWorth: s.netWorth + totalPropertyValue,
+  }))
+  const chartStats = showPropertyInChart ? stats : baseStats
   const latest = stats[stats.length - 1]
   const prev = stats[stats.length - 2]
 
@@ -385,11 +395,18 @@ export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
           icon={<TrendingUp size={18} />}
           accent="emerald"
           sub={
-            debtToAsset !== null ? (
-              <span className="text-gray-500">
-                {debtToAsset.toFixed(1)}% {t('dashboard.card.debtToAsset', lang)}
-              </span>
-            ) : null
+            <>
+              {totalPropertyValue > 0 && (
+                <span className="text-gray-500 block">
+                  <span className="text-gray-400">{fmtShort(currentAssets - totalPropertyValue)}</span> {lang === 'he' ? 'פיננסי' : 'financial'} · <span className="text-gray-400">{fmtShort(totalPropertyValue)}</span> {lang === 'he' ? 'נדל"ן' : 'real estate'}
+                </span>
+              )}
+              {debtToAsset !== null && (
+                <span className="text-gray-500">
+                  {debtToAsset.toFixed(1)}% {t('dashboard.card.debtToAsset', lang)}
+                </span>
+              )}
+            </>
           }
         />
         {currentLiabilities !== 0 && (
@@ -477,9 +494,20 @@ export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
         <EmptyState onNavigate={onNavigate} lang={lang} />
       ) : (
         <>
-          <ChartCard title={t('dashboard.chart.netWorth', lang)}>
+          <div className="bg-[#14141f] border border-white/5 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-sm font-semibold text-gray-300">{t('dashboard.chart.netWorth', lang)}</h2>
+              {totalPropertyValue > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer select-none" onClick={() => setShowPropertyInChart(v => !v)}>
+                  <span className="text-xs text-gray-500">{lang === 'he' ? 'כולל נדל"ן' : 'incl. real estate'}</span>
+                  <span className={cn('relative inline-block h-5 w-9 rounded-full transition-colors', showPropertyInChart ? 'bg-indigo-500' : 'bg-white/10')}>
+                    <span className={cn('absolute top-[3px] h-3.5 w-3.5 rounded-full bg-white shadow transition-all', showPropertyInChart ? 'left-[18px]' : 'left-[3px]')} />
+                  </span>
+                </label>
+              )}
+            </div>
             <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={stats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <LineChart data={chartStats} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis
                   dataKey="label"
@@ -511,7 +539,7 @@ export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
                 />
               </LineChart>
             </ResponsiveContainer>
-          </ChartCard>
+          </div>
 
           {currentLiabilities !== 0 && (
             <ChartCard title={t('dashboard.chart.assetsVsLiabilities', lang)}>

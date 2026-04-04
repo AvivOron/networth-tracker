@@ -164,7 +164,7 @@ export function AppClient({ user }: AppClientProps) {
 
         <div className={`flex-1 ${page === 'insights' ? 'overflow-hidden relative' : 'overflow-y-auto'}`}>
           {page === 'dashboard' && (
-            <Dashboard data={data} onNavigate={handleNavigate} txSummary={txSummary} />
+            <Dashboard data={data} onNavigate={handleNavigate} txSummary={txSummary} properties={properties} />
           )}
           {page === 'snapshot' && (
             <SnapshotEntry
