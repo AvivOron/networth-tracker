@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getEffectiveUserId } from '@/lib/household'
+import { assembleAppData } from '@/lib/data'
 import Anthropic from '@anthropic-ai/sdk'
 import { AppData, MonthlySnapshot, Property } from '@/types'
 
@@ -203,9 +204,6 @@ Comment on liabilities. Debt-to-asset ratio, any red flags?
 Give 3–5 specific, prioritized action items the user should take. Be direct and concrete. Remember: bank "investments" sub-balances are already in stocks — do not recommend investing money that is already invested.`
 }
 
-function isAppData(data: any): data is AppData {
-  return data && Array.isArray(data.accounts) && Array.isArray(data.snapshots) && Array.isArray(data.familyMembers);
-}
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
@@ -216,8 +214,8 @@ export async function POST(request: Request) {
   const { currency = 'NIS', language = 'en' } = await request.json()
 
   const effectiveUserId = await getEffectiveUserId(session.user.id)
-  const [userData, dbProperties, allTxns] = await Promise.all([
-    prisma.userData.findUnique({ where: { userId: effectiveUserId } }),
+  const [data, dbProperties, allTxns] = await Promise.all([
+    assembleAppData(effectiveUserId),
     prisma.property.findMany({ where: { userId: effectiveUserId }, orderBy: { createdAt: 'asc' } }).catch(() => []),
     prisma.transaction.findMany({
       where: { userId: effectiveUserId, mappingStatus: { not: 'ignored' } },
@@ -225,7 +223,6 @@ export async function POST(request: Request) {
     }).catch(() => []),
   ])
 
-  const data = isAppData(userData?.data) ? userData.data : { accounts: [], snapshots: [], familyMembers: [] };
   const properties = dbProperties as Property[]
 
   // Mirror Expenses.tsx logic: variable expense IDs from AppData, recurring expense IDs excluded

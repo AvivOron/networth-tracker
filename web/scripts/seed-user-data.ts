@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client'
+import { saveAppData } from '../src/lib/data'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -33,11 +34,7 @@ async function main() {
   // Strip fields not needed in the web app
   delete data.driveSync
 
-  await prisma.userData.upsert({
-    where: { userId: user.id },
-    update: { data },
-    create: { userId: user.id, data },
-  })
+  await saveAppData(user.id, data)
 
   console.log(`✓ Seeded data for ${email} (userId: ${user.id})`)
   console.log(`  accounts: ${data.accounts?.length ?? 0}`)

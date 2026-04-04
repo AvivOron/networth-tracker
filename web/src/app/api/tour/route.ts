@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { encode } from 'next-auth/jwt'
 import { prisma } from '@/lib/prisma'
+import { saveAppData } from '@/lib/data'
 import { generateMockData } from '@/lib/tour-data'
 import { DEMO_USER_EMAIL } from '@/lib/auth'
 
@@ -142,16 +143,8 @@ export async function GET(request: Request) {
       })
     }
 
-    // Create or update userData with mock data
-    const mockData = generateMockData() as any
-    await prisma.userData.upsert({
-      where: { userId: user.id },
-      update: { data: mockData },
-      create: {
-        userId: user.id,
-        data: mockData
-      }
-    })
+    // Create or update normalized tables with mock data
+    await saveAppData(user.id, generateMockData() as any)
 
     // Seed mock transactions (delete existing demo ones first)
     await prisma.transaction.deleteMany({ where: { userId: user.id } })

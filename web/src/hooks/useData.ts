@@ -3,6 +3,17 @@ import { AppData, Account, MonthlySnapshot, RecurringExpense, VariableExpense, I
 
 const defaultData: AppData = { accounts: [], snapshots: [], familyMembers: [] }
 
+const BASE = '/finance-hub/api'
+
+async function put(path: string, body: unknown) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'PUT',
+  plication/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`Failed to save ${path}`)
+}
+
 export function useData() {
   const [data, setData] = useState<AppData>(defaultData)
   const [loading, setLoading] = useState(true)
@@ -10,8 +21,8 @@ export function useData() {
 
   useEffect(() => {
     Promise.all([
-      fetch('/finance-hub/api/data').then(r => r.json()),
-      fetch('/finance-hub/api/transactions/summary').then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(`${BASE}/data`).then(r => r.json()),
+      fetch(`${BASE}/transactions/summary`).then(r => r.ok ? r.json() : null).catch(() => null),
     ]).then(([d, summary]) => {
       setData(d && d.accounts ? d : defaultData)
       if (summary) setTxSummary(summary)
@@ -19,83 +30,52 @@ export function useData() {
     }).catch(() => setLoading(false))
   }, [])
 
-  const saveAll = useCallback(async (newData: AppData): Promise<void> => {
-    setData(newData)
-    const res = await fetch('/finance-hub/api/data', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newData)
-    })
-    if (!res.ok) throw new Error('Failed to save data')
+  const saveAccounts = useCallback(async (accounts: Account[]): Promise<void> => {
+    setData(prev => ({ ...prev, accounts }))
+    await put('/accounts', accounts)
   }, [])
 
-  const saveAccounts = useCallback(
-    async (accounts: Account[]): Promise<void> => {
-      await saveAll({ ...data, accounts })
-    },
-    [data, saveAll]
-  )
+  const saveSnapshots = useCallback(async (snapshots: MonthlySnapshot[]): Promise<void> => {
+    setData(prev => ({ ...prev, snapshots }))
+    await put('/snapshots', snapshots)
+  }, [])
 
-  const saveSnapshots = useCallback(
-    async (snapshots: MonthlySnapshot[]): Promise<void> => {
-      await saveAll({ ...data, snapshots })
-    },
-    [data, saveAll]
-  )
+  const saveFamilyMembers = useCallback(async (familyMembers: FamilyMember[]): Promise<void> => {
+    setData(prev => ({ ...prev, familyMembers }))
+    await put('/family-members', familyMembers)
+  }, [])
 
-  const saveFamilyMembers = useCallback(
-    async (familyMembers: FamilyMember[]): Promise<void> => {
-      await saveAll({ ...data, familyMembers })
-    },
-    [data, saveAll]
-  )
+  const saveExpenses = useCallback(async (expenses: RecurringExpense[]): Promise<void> => {
+    setData(prev => ({ ...prev, expenses }))
+    await put('/expenses', expenses)
+  }, [])
 
-  const saveExpenses = useCallback(
-    async (expenses: RecurringExpense[]): Promise<void> => {
-      await saveAll({ ...data, expenses })
-    },
-    [data, saveAll]
-  )
+  const saveVariableExpenses = useCallback(async (variableExpenses: VariableExpense[]): Promise<void> => {
+    setData(prev => ({ ...prev, variableExpenses }))
+    await put('/variable-expenses', variableExpenses)
+  }, [])
 
-  const saveVariableExpenses = useCallback(
-    async (variableExpenses: VariableExpense[]): Promise<void> => {
-      await saveAll({ ...data, variableExpenses })
-    },
-    [data, saveAll]
-  )
+  const saveIncome = useCallback(async (income: IncomeSource[]): Promise<void> => {
+    setData(prev => ({ ...prev, income }))
+    await put('/income', income)
+  }, [])
 
-  const saveIncome = useCallback(
-    async (income: IncomeSource[]): Promise<void> => {
-      await saveAll({ ...data, income })
-    },
-    [data, saveAll]
-  )
+  const saveAiInsights = useCallback(async (insights: { content: string; language: string; generatedAt: string }): Promise<void> => {
+    const res = await fetch(`${BASE}/save-insights`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(insights),
+    })
+    if (!res.ok) throw new Error('Failed to save insights')
+  }, [])
 
-  const saveAiInsights = useCallback(
-    async (insights: { content: string; language: string; generatedAt: string }): Promise<void> => {
-      const res = await fetch('/finance-hub/api/save-insights', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(insights)
-      })
-      if (!res.ok) throw new Error('Failed to save insights')
-    },
-    []
-  )
-
-  const saveAccountHoldings = useCallback(
-    async (accountHoldings: AccountHoldings[]): Promise<void> => {
-      // Fetch latest data from server to avoid overwriting other fields
-      const res = await fetch('/finance-hub/api/data')
-      const latestData = await res.json()
-      const mergedData = { ...latestData, accountHoldings }
-      await saveAll(mergedData)
-    },
-    [saveAll]
-  )
+  const saveAccountHoldings = useCallback(async (accountHoldings: AccountHoldings[]): Promise<void> => {
+    setData(prev => ({ ...prev, accountHoldings }))
+    await put('/account-holdings', accountHoldings)
+  }, [])
 
   const refreshData = useCallback(async (): Promise<void> => {
-    const res = await fetch('/finance-hub/api/data')
+    const res = await fetch(`${BASE}/data`)
     const d = await res.json()
     setData(d && d.accounts ? d : defaultData)
   }, [])

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { getEffectiveUserId } from '@/lib/household'
+import { assembleAppData } from '@/lib/data'
 import { NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import type { AppData, Account, RecurringExpense, IncomeSource } from '@/types'
@@ -155,10 +156,8 @@ export async function POST() {
 
   try {
     const effectiveUserId = await getEffectiveUserId(session.user.id)
-    const userData = await prisma.userData.findUnique({ where: { userId: effectiveUserId } })
-    const data = (userData?.data as unknown as AppData) ?? { accounts: [], snapshots: [] }
-
-    const [properties, transactions] = await Promise.all([
+    const [data, properties, transactions] = await Promise.all([
+      assembleAppData(effectiveUserId),
       prisma.property.findMany({ where: { userId: effectiveUserId } }),
       prisma.transaction.findMany({ where: { userId: effectiveUserId } }),
     ])

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { saveAppData } from '@/lib/data'
 import { generateMockData } from '@/lib/tour-data'
 import { DEMO_USER_EMAIL } from '@/lib/auth'
 
@@ -26,18 +27,10 @@ export default async function TourStartPage() {
     }
     console.log('[Tour] Using user ID:', user.id)
 
-    // Create or update userData with mock data
+    // Create or update normalized tables with mock data
     console.log('[Tour] Generating mock data...')
-    const mockData = generateMockData() as any
-    console.log('[Tour] Upserting user data...')
-    await prisma.userData.upsert({
-      where: { userId: user.id },
-      update: { data: mockData },
-      create: {
-        userId: user.id,
-        data: mockData
-      }
-    })
+    console.log('[Tour] Saving user data...')
+    await saveAppData(user.id, generateMockData() as any)
     console.log('[Tour] User data saved')
 
     // Create a session token

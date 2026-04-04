@@ -72,20 +72,26 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts         Account[]
-  sessions         Session[]
-  userData         UserData?
-  ownedHousehold   Household?       @relation("HouseholdOwner")
-  householdMember  HouseholdMember?
-  transactions     Transaction[]
-  properties       Property[]
+  accounts           Account[]
+  sessions           Session[]
+  userData           UserData?
+  ownedHousehold     Household?         @relation("HouseholdOwner")
+  householdMember    HouseholdMember?
+  transactions       Transaction[]
+  properties         Property[]
+  financialAccounts  FinancialAccount[]
+  monthlySnapshots   MonthlySnapshot[]
+  familyMembers      FamilyMember[]
+  recurringExpenses  RecurringExpense[]
+  variableExpenses   VariableExpense[]
+  incomeSources      IncomeSource[]
+  accountHoldings    AccountHoldings[]
 }
 
-// Stores each user's AppData JSON blob — one row per user
+// Stores per-user AI insights — financial data now lives in normalized tables
 model UserData {
   id            String   @id @default(cuid())
   userId        String   @unique
-  data          Json     @default("{}")
   aiInsights    Json?    // { content: string, language: 'en' | 'he', generatedAt: string }
   updatedAt     DateTime @updatedAt
 
@@ -150,6 +156,144 @@ model Property {
 
   @@index([userId])
 }
+
+// ─── Normalized financial data (migrated from UserData.data JSON blob) ──────
+
+// Financial accounts (renamed from 'Account' to avoid clash with NextAuth Account)
+model FinancialAccount {
+  id              String   @id @default(cuid())
+  userId          String   // always the household owner's userId
+  name            String
+  type            String   // 'asset' | 'liability'
+  kind            String   @default("custom") // 'bank' | 'brokerage' | 'child' | 'piggyBank' | 'custom'
+  owner           String?  // family member name
+  notes           String?  @db.Text
+  url             String?
+  monthlyDeposit  Float?
+  feesFixed       Float?
+  feesOnBalance   Float?
+  feesOnDeposit   Float?
+  description     String?  @db.Text
+  bankVendor      String?  // 'poalim' | 'other'
+  brokerageVendor String?  // 'excellence' | 'other'
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  snapshotEntries SnapshotEntry[]
+  holdings        AccountHoldings?
+
+  @@index([userId])
+}
+
+model MonthlySnapshot {
+  id        String          @id @default(cuid())
+  userId    String
+  date      String          // YYYY-MM
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries SnapshotEntry[]
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model SnapshotEntry {
+  id            String    @id @default(cuid())
+  snapshotId    String
+  accountId     String
+  balance       Float
+  subBalances   Json?     // Record<string, number> — sparse, varies by account kind
+  lastUpdatedAt DateTime?
+
+  snapshot MonthlySnapshot  @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  account  FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, accountId])
+}
+
+model FamilyMember {
+  id      String  @id @default(cuid())
+  userId  String
+  name    String
+  isChild Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model RecurringExpense {
+  id           String   @id
+  userId       String
+  name         String
+  amount       Float
+  category     String   // ExpenseCategory slug
+  billingCycle String   // 'monthly' | 'yearly'
+  owner        String?
+  notes        String?  @db.Text
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VariableExpense {
+  id       String  @id
+  userId   String
+  name     String
+  category String
+  owner    String?
+  active   Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model IncomeSource {
+  id           String   @id
+  userId       String
+  name         String
+  type         String   @default("salary")
+  grossAmount  Float
+  netAmount    Float
+  billingCycle String   // 'monthly' | 'yearly'
+  owner        String?
+  notes        String?  @db.Text
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Investment holdings per financial account — holdings array stays as JSON
+// (uploaded wholesale from XLSX, never queried individually)
+model AccountHoldings {
+  id            String   @id @default(cuid())
+  accountId     String   @unique
+  userId        String
+  updatedAt     DateTime
+  totalValueNIS Float
+  holdings      Json     // Investment[]
+
+  account FinancialAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Non-owner users who have joined a household
 model HouseholdMember {
