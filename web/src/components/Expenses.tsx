@@ -90,6 +90,7 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
   const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
   const [showModal, setShowModal] = useState(false)
+  const [showGraph, setShowGraph] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [saving, setSaving] = useState(false)
@@ -244,72 +245,77 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 md:mb-8">
         <SummaryCard
           label={t('expenses.summary.totalMonthly', lang)}
           value={formatCurrency(totalMonthly, currency)}
-          sub={tn('expenses.summary.totalMonthlyActive', activeExpenses.length, lang)}
         />
         <SummaryCard label={t('expenses.summary.totalYearly', lang)} value={formatCurrency(totalYearly, currency)} sub={t('expenses.summary.totalYearlySub', lang)} />
-        <SummaryCard
-          label={t('expenses.summary.allExpenses', lang)}
-          value={String(expenses.length)}
-          sub={
-            expenses.length - activeExpenses.length > 0
-              ? tn('expenses.summary.paused', expenses.length - activeExpenses.length, lang)
-              : t('expenses.summary.allActive', lang)
-          }
-          plain
-        />
       </div>
 
       {categoryData.length > 0 && (
         <div className="bg-[#14141f] border border-white/5 rounded-xl p-6 mb-8">
-          <h2 className="text-sm font-semibold text-gray-300 mb-6">{t('expenses.chart.title', lang)}</h2>
-          <div className="[&_svg]:cursor-pointer" dir="ltr">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
-                  tickLine={false}
-                />
-                <YAxis
-                  tick={{ fill: '#6b7280', fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={60}
-                  tickFormatter={(v) => formatCurrencyShort(v, currency)}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1a1a27',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: '10px',
-                    padding: '10px 14px'
-                  }}
-                  wrapperStyle={{ outline: 'none' }}
-                  labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}
-                  formatter={(v) => [fmt(v as number), t('expenses.chart.tooltipLabel', lang)]}
-                  cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                />
-                <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]} onClick={handleBarClick}>
-                  {categoryData.map((_, idx) => (
-                    <Cell
-                      key={`cell-${idx}`}
-                      fill={
-                        ['#f59e0b', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#6366f1', '#0ea5e9'][
-                          idx % 7
-                        ]
-                      }
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-sm font-semibold text-gray-300">{t('expenses.chart.title', lang)}</h2>
+            <button
+              onClick={() => setShowGraph((v) => !v)}
+              className={cn(
+                'text-xs px-3 py-1 rounded-full border transition-colors',
+                showGraph
+                  ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+                  : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'
+              )}
+            >
+              {showGraph ? t('expenses.chart.hide', lang) : t('expenses.chart.show', lang)}
+            </button>
           </div>
+          {showGraph && (
+            <div className="[&_svg]:cursor-pointer" dir="ltr">
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={categoryData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    axisLine={{ stroke: 'rgba(255,255,255,0.08)' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={60}
+                    tickFormatter={(v) => formatCurrencyShort(v, currency)}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#1a1a27',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '10px',
+                      padding: '10px 14px'
+                    }}
+                    wrapperStyle={{ outline: 'none' }}
+                    labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }}
+                    itemStyle={{ color: '#9ca3af' }}
+                    formatter={(v) => [fmt(v as number), t('expenses.chart.tooltipTotal', lang)]}
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                  />
+                  <Bar dataKey="amount" fill="#f59e0b" radius={[6, 6, 0, 0]} onClick={handleBarClick}>
+                    {categoryData.map((_, idx) => (
+                      <Cell
+                        key={`cell-${idx}`}
+                        fill={
+                          ['#f59e0b', '#f97316', '#ef4444', '#ec4899', '#a855f7', '#6366f1', '#0ea5e9'][
+                            idx % 7
+                          ]
+                        }
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       )}
 
@@ -422,11 +428,12 @@ export function Expenses({ expenses, familyMembers: rawFamilyMembers, onSave }: 
                                 {expense.billingCycle === 'yearly' ? t('expenses.billing.perYear', lang) : t('expenses.billing.perMonth', lang)}
                               </span>
                             </p>
-                            {expense.billingCycle === 'yearly' && (
-                              <p className="text-xs text-gray-600">
-                                {formatCurrency(expense.amount / 12, currency)}{t('expenses.billing.perMonth', lang)}
-                              </p>
-                            )}
+                            <p className="text-xs text-gray-600">
+                              {expense.billingCycle === 'yearly'
+                                ? <>{formatCurrency(expense.amount / 12, currency)}{t('expenses.billing.perMonth', lang)}</>
+                                : <>{t('expenses.billing.avg12', lang)} {formatCurrency(expense.amount * 12, currency)}</>
+                              }
+                            </p>
                           </div>
 
                           <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
@@ -626,7 +633,7 @@ function SummaryCard({
 }: {
   label: string
   value: string
-  sub: string
+  sub?: string
   plain?: boolean
 }) {
   return (
@@ -635,7 +642,7 @@ function SummaryCard({
       <p className={cn('text-2xl font-bold tracking-tight', plain ? 'text-white' : 'text-red-400')}>
         {value}
       </p>
-      <p className="text-xs text-gray-600 mt-1">{sub}</p>
+      {sub && <p className="text-xs text-gray-600 mt-1">{sub}</p>}
     </div>
   )
 }
