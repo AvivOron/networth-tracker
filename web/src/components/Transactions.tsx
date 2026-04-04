@@ -311,18 +311,18 @@ export function Transactions({ data }: TransactionsProps) {
       {transactions.length > 0 && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1 bg-[#14141f] border border-white/8 rounded-lg p-1">
+            <div className="flex flex-wrap items-center gap-1 bg-[#14141f] border border-white/8 rounded-lg p-1">
               {(['all', 'unmapped', 'auto', 'manual', 'ignored'] as FilterStatus[]).map(s => (
                 <button
                   key={s}
                   onClick={() => setFilter(s)}
                   className={cn(
-                    'px-3 py-1.5 rounded text-xs font-medium transition-colors',
+                    'px-2 sm:px-3 py-1.5 rounded text-xs font-medium transition-colors whitespace-nowrap',
                     filter === s ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                   )}
                 >
                   {t(s === 'all' ? 'tx.filter.all' : `tx.filter.${s}` as any, lang)}
-                  {counts[s] > 0 && <span className="ml-1 opacity-60">{counts[s]}</span>}
+                  {counts[s] > 0 && <span className="ms-1.5 opacity-60">{counts[s]}</span>}
                 </button>
               ))}
             </div>
