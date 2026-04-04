@@ -7,7 +7,7 @@ import { AppData, MonthlySnapshot, Property } from '@/types'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-function buildPrompt(data: AppData, currency: string, language: string = 'en', properties: Property[] = []): string {
+function buildPrompt(data: AppData, currency: string, language: string = 'en', properties: Property[] = [], variableExpensesByCategory: Record<string, number> = {}): string {
   const currencySymbol = currency === 'NIS' ? '₪' : '$'
   const languageInstruction = language === 'he'
     ? '\n\nIMPORTANT: You MUST respond entirely in Hebrew (עברית). Use Hebrew formatting and conventions.'
@@ -110,6 +110,19 @@ function buildPrompt(data: AppData, currency: string, language: string = 'en', p
     }).join('\n\n')
   }
 
+  // Variable expenses (transaction-based, non-recurring)
+  let variableExpensesSummary = ''
+  let totalMonthlyVariable = 0
+  const varEntries = Object.entries(variableExpensesByCategory)
+    .filter(([, avg]) => (avg as number) > 0)
+    .sort(([, a], [, b]) => (b as number) - (a as number)) as [string, number][]
+  if (varEntries.length > 0) {
+    totalMonthlyVariable = varEntries.reduce((s, [, avg]) => s + avg, 0)
+    variableExpensesSummary = varEntries
+      .map(([cat, avg]) => `  - ${cat}: ${currencySymbol}${Math.round(avg).toLocaleString()}/month (avg)`)
+      .join('\n')
+  }
+
   // Properties
   let propertiesSummary = ''
   if (properties.length > 0) {
@@ -148,12 +161,19 @@ ${incomeSummary || '  None'}
 ${expenseSummary || '  None'}
   Total monthly: ${currencySymbol}${totalMonthlyExpenses.toLocaleString()}
   By category: ${Object.entries(expensesByCategory).map(([k, v]) => `${k}=${currencySymbol}${Math.round(v).toLocaleString()}`).join(', ') || 'N/A'}
+${variableExpensesSummary ? `
+**Variable / non-recurring expenses (monthly averages from transaction history):**
+${variableExpensesSummary}
+  Total monthly avg: ${currencySymbol}${Math.round(totalMonthlyVariable).toLocaleString()}` : ''}
 
 **Monthly cash flow:**
   Net income: ${currencySymbol}${totalMonthlyNet.toLocaleString()}
-  Expenses: ${currencySymbol}${totalMonthlyExpenses.toLocaleString()}
-  Surplus/deficit: ${currencySymbol}${(totalMonthlyNet - totalMonthlyExpenses).toLocaleString()}
-${savingsRate !== null ? `  Savings rate: ${savingsRate}%` : ''}
+  Recurring expenses: ${currencySymbol}${totalMonthlyExpenses.toLocaleString()}${totalMonthlyVariable > 0 ? `
+  Variable expenses (avg): ${currencySymbol}${Math.round(totalMonthlyVariable).toLocaleString()}
+  Total expenses: ${currencySymbol}${Math.round(totalMonthlyExpenses + totalMonthlyVariable).toLocaleString()}
+  Surplus/deficit: ${currencySymbol}${Math.round(totalMonthlyNet - totalMonthlyExpenses - totalMonthlyVariable).toLocaleString()}` : `
+  Surplus/deficit: ${currencySymbol}${(totalMonthlyNet - totalMonthlyExpenses).toLocaleString()}`}
+${savingsRate !== null && totalMonthlyVariable === 0 ? `  Savings rate: ${savingsRate}%` : ''}${totalMonthlyVariable > 0 && totalMonthlyNet > 0 ? `  Savings rate: ${(((totalMonthlyNet - totalMonthlyExpenses - totalMonthlyVariable) / totalMonthlyNet) * 100).toFixed(1)}%` : ''}
 ${holdingsSummary ? `
 
 **Investment Holdings:**
@@ -196,15 +216,56 @@ export async function POST(request: Request) {
   const { currency = 'NIS', language = 'en' } = await request.json()
 
   const effectiveUserId = await getEffectiveUserId(session.user.id)
-  const [userData, dbProperties] = await Promise.all([
+  const [userData, dbProperties, allTxns] = await Promise.all([
     prisma.userData.findUnique({ where: { userId: effectiveUserId } }),
     prisma.property.findMany({ where: { userId: effectiveUserId }, orderBy: { createdAt: 'asc' } }).catch(() => []),
+    prisma.transaction.findMany({
+      where: { userId: effectiveUserId, mappingStatus: { not: 'ignored' } },
+      select: { month: true, amount: true, overrideAmount: true, expenseCategory: true, recurringExpenseId: true },
+    }).catch(() => []),
   ])
 
   const data = isAppData(userData?.data) ? userData.data : { accounts: [], snapshots: [], familyMembers: [] };
   const properties = dbProperties as Property[]
 
-  const prompt = buildPrompt(data, currency, language, properties)
+  // Mirror Expenses.tsx logic: variable expense IDs from AppData, recurring expense IDs excluded
+  const variableExpenseIds = new Set((data.variableExpenses ?? []).map((e: any) => e.id))
+  // byExpense: variable-mapped txns grouped by expenseId → month → total
+  const byExpense: Record<string, Record<string, number>> = {}
+  // byCategory: unmapped txns grouped by category → month → total
+  const byCategory: Record<string, Record<string, number>> = {}
+  for (const tx of allTxns) {
+    const amt = ((tx.overrideAmount ?? tx.amount) as number)
+    const rid = tx.recurringExpenseId as string | null
+    if (rid && variableExpenseIds.has(rid)) {
+      if (!byExpense[rid]) byExpense[rid] = {}
+      byExpense[rid][tx.month] = (byExpense[rid][tx.month] ?? 0) + amt
+    } else if (!rid) {
+      const cat = (tx.expenseCategory as string | null) ?? 'other'
+      if (!byCategory[cat]) byCategory[cat] = {}
+      byCategory[cat][tx.month] = (byCategory[cat][tx.month] ?? 0) + amt
+    }
+    // transactions mapped to a recurring expense are already in the recurring section — skip
+  }
+  // Rolling avg over up to last 12 months that have data (same as Expenses.tsx)
+  function rollingAvg(byMonth: Record<string, number>): number {
+    const sorted = Object.keys(byMonth).sort().slice(-12)
+    if (sorted.length === 0) return 0
+    return sorted.reduce((s, m) => s + byMonth[m], 0) / sorted.length
+  }
+  // Combine into per-category averages (variable-mapped use their category from variableExpenses)
+  const variableExpensesByCategory: Record<string, number> = {}
+  for (const [cat, byMonth] of Object.entries(byCategory)) {
+    variableExpensesByCategory[cat] = (variableExpensesByCategory[cat] ?? 0) + rollingAvg(byMonth)
+  }
+  for (const ve of (data.variableExpenses ?? []) as any[]) {
+    const byMonth = byExpense[ve.id]
+    if (!byMonth) continue
+    const cat = ve.category ?? 'other'
+    variableExpensesByCategory[cat] = (variableExpensesByCategory[cat] ?? 0) + rollingAvg(byMonth)
+  }
+
+  const prompt = buildPrompt(data, currency, language, properties, variableExpensesByCategory)
 
   const stream = await client.messages.stream({
     model: 'claude-opus-4-6',

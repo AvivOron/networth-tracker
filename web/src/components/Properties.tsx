@@ -95,7 +95,7 @@ function AddressAutocomplete({
     if (q.length < 3) { setResults([]); setOpen(false); return }
     setSearching(true)
     try {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=0`
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5&addressdetails=0&countrycodes=il`
       const res = await fetch(url, { headers: { 'Accept-Language': lang === 'he' ? 'he,en' : 'en' } })
       const data: NominatimResult[] = await res.json()
       setResults(data)
