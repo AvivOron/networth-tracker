@@ -6,15 +6,17 @@ const defaultData: AppData = { accounts: [], snapshots: [], familyMembers: [] }
 export function useData() {
   const [data, setData] = useState<AppData>(defaultData)
   const [loading, setLoading] = useState(true)
+  const [txSummary, setTxSummary] = useState<{ byExpense: Record<string, Record<string, number>>; byCategory: Record<string, Record<string, number>> } | null>(null)
 
   useEffect(() => {
-    fetch('/finance-hub/api/data')
-      .then((r) => r.json())
-      .then((d) => {
-        setData(d && d.accounts ? d : defaultData)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    Promise.all([
+      fetch('/finance-hub/api/data').then(r => r.json()),
+      fetch('/finance-hub/api/transactions/summary').then(r => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([d, summary]) => {
+      setData(d && d.accounts ? d : defaultData)
+      if (summary) setTxSummary(summary)
+      setLoading(false)
+    }).catch(() => setLoading(false))
   }, [])
 
   const saveAll = useCallback(async (newData: AppData): Promise<void> => {
@@ -98,5 +100,5 @@ export function useData() {
     setData(d && d.accounts ? d : defaultData)
   }, [])
 
-  return { data, loading, saveAccounts, saveSnapshots, saveFamilyMembers, saveExpenses, saveVariableExpenses, saveIncome, saveAiInsights, saveAccountHoldings, refreshData }
+  return { data, loading, txSummary, saveAccounts, saveSnapshots, saveFamilyMembers, saveExpenses, saveVariableExpenses, saveIncome, saveAiInsights, saveAccountHoldings, refreshData }
 }

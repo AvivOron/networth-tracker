@@ -29,6 +29,7 @@ interface ExpensesProps {
   familyMembers: FamilyMember[]
   onSave: (expenses: RecurringExpense[]) => Promise<void>
   onSaveVariable: (expenses: VariableExpense[]) => Promise<void>
+  txSummary: { byExpense: Record<string, Record<string, number>>; byCategory: Record<string, Record<string, number>> } | null
 }
 
 type FormState = {
@@ -103,7 +104,7 @@ function rollingAvgBestEffort(byMonth: Record<string, number>, months: number): 
   return sum / sorted.length
 }
 
-export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyMembers, onSave, onSaveVariable }: ExpensesProps) {
+export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyMembers, onSave, onSaveVariable, txSummary }: ExpensesProps) {
   const { currency } = useCurrency()
   const { lang } = useLanguage()
   const fmt = (v: number) => formatCurrency(v, currency)
@@ -120,15 +121,7 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
   const [varForm, setVarForm] = useState<{ name: string; category: ExpenseCategory; owner: string }>({ name: '', category: 'other', owner: '' })
   const [varDeleteConfirm, setVarDeleteConfirm] = useState<string | null>(null)
   const [savingVar, setSavingVar] = useState(false)
-  const [txSummary, setTxSummary] = useState<{ byExpense: Record<string, Record<string, number>>; byCategory: Record<string, Record<string, number>> } | null>(null)
   const [showVariable, setShowVariable] = useState(true)
-
-  useEffect(() => {
-    fetch('/finance-hub/api/transactions/summary')
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setTxSummary(d) })
-      .catch(() => {})
-  }, [])
   const categoryRefs = useRef<Record<ExpenseCategory, HTMLDivElement | null>>(
     {} as Record<ExpenseCategory, HTMLDivElement | null>
   )
@@ -147,11 +140,13 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
   const categoryData = calculateCategoryData(filteredExpenses)
 
   // Compute 12-month average of all variable spending (mapped variable expenses + unmapped categories)
+  const variableExpenseIds = new Set(variableExpenses.map(e => e.id))
   const avgVariable = (() => {
     if (!txSummary) return null
-    // Merge all monthly totals: byExpense (mapped variable expenses) + byCategory (unmapped)
+    // Merge monthly totals: only variable expense mappings (not recurring) + unmapped categories
     const combined: Record<string, number> = {}
-    for (const byMonth of Object.values(txSummary.byExpense)) {
+    for (const [expenseId, byMonth] of Object.entries(txSummary.byExpense)) {
+      if (!variableExpenseIds.has(expenseId)) continue
       for (const [month, amt] of Object.entries(byMonth)) {
         combined[month] = (combined[month] ?? 0) + amt
       }
@@ -335,23 +330,17 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6 md:mb-8">
         <SummaryCard
           label={t('expenses.summary.totalMonthly', lang)}
-          value={formatCurrency(totalMonthly, currency)}
-          sub={tn('expenses.summary.totalMonthlyActive', activeExpenses.length, lang)}
-          varSub={avgVariable != null ? t('expenses.variable.avgSub', lang).replace('{amount}', formatCurrency(avgVariable, currency)) : undefined}
-          totalSub={avgVariable != null ? t('expenses.variable.totalSub', lang).replace('{amount}', formatCurrency(totalMonthly + avgVariable, currency)) : undefined}
+          value={avgVariable != null ? formatCurrency(totalMonthly + avgVariable, currency) : formatCurrency(totalMonthly, currency)}
+          sub=''
+          recurringSub={avgVariable != null ? t('expenses.summary.recurring', lang).replace('{amount}', formatCurrency(totalMonthly, currency)) : undefined}
+          variableSub={avgVariable != null ? t('expenses.summary.variableAvg', lang).replace('{amount}', formatCurrency(avgVariable, currency)) : undefined}
         />
         <SummaryCard
           label={t('expenses.summary.totalYearly', lang)}
-          value={formatCurrency(totalYearly, currency)}
-          sub={t('expenses.summary.totalYearlySub', lang)}
-          varSub={avgVariable != null ? t('expenses.variable.avgSub', lang).replace('{amount}', formatCurrency(avgVariable * 12, currency)) : undefined}
-          totalSub={avgVariable != null ? t('expenses.variable.totalSub', lang).replace('{amount}', formatCurrency((totalMonthly + avgVariable) * 12, currency)) : undefined}
-        />
-        <SummaryCard
-          label={t('expenses.summary.allExpenses', lang)}
-          value={String(expenses.length)}
-          sub={expenses.length - activeExpenses.length > 0 ? tn('expenses.summary.paused', expenses.length - activeExpenses.length, lang) : ''}
-          plain
+          value={avgVariable != null ? formatCurrency((totalMonthly + avgVariable) * 12, currency) : formatCurrency(totalYearly, currency)}
+          sub=''
+          recurringSub={avgVariable != null ? t('expenses.summary.recurring', lang).replace('{amount}', formatCurrency(totalYearly, currency)) : undefined}
+          variableSub={avgVariable != null ? t('expenses.summary.variableAvg', lang).replace('{amount}', formatCurrency(avgVariable * 12, currency)) : undefined}
         />
       </div>
 
@@ -1006,28 +995,25 @@ function VariableExpensesList({
         )
       })}
 
-      {unmappedRows.length > 0 && (
-        <>
-          <div className="px-5 py-2 bg-white/2">
-            <p className="text-xs text-slate-500 font-medium">{tFn('expenses.variable.unmappedHeader', lang as any)}</p>
-          </div>
-          {unmappedRows.map(({ cat, byMonth }) => {
-            const cfg = CATEGORY_CONFIG[cat]
-            return (
-              <VariableExpenseRow
-                key={cat}
-                label={cfg.label}
-                byMonth={byMonth}
-                icon={cfg.icon}
-                color={cn(cfg.color, 'opacity-60')}
-                fmt={fmt}
-                lang={lang}
-                t={tFn}
-              />
-            )
-          })}
-        </>
-      )}
+      {unmappedRows.length > 0 && (() => {
+        const mergedByMonth: Record<string, number> = {}
+        for (const { byMonth } of unmappedRows) {
+          for (const [month, amt] of Object.entries(byMonth)) {
+            mergedByMonth[month] = (mergedByMonth[month] ?? 0) + amt
+          }
+        }
+        return (
+          <VariableExpenseRow
+            label={tFn('expenses.variable.unmappedHeader', lang as any)}
+            byMonth={mergedByMonth}
+            icon={<span className="text-xs">?</span>}
+            color="border-white/10 bg-white/5 text-slate-400"
+            fmt={fmt}
+            lang={lang}
+            t={tFn}
+          />
+        )
+      })()}
     </div>
   )
 }
@@ -1036,15 +1022,15 @@ function SummaryCard({
   label,
   value,
   sub,
-  varSub,
-  totalSub,
+  recurringSub,
+  variableSub,
   plain
 }: {
   label: string
   value: string
   sub: string
-  varSub?: string
-  totalSub?: string
+  recurringSub?: string
+  variableSub?: string
   plain?: boolean
 }) {
   return (
@@ -1054,11 +1040,11 @@ function SummaryCard({
         {value}
       </p>
       <p className="text-xs text-gray-600 mt-1">{sub}</p>
-      {varSub && (
-        <p className="text-xs text-amber-500/80 mt-0.5">{varSub}</p>
+      {recurringSub && (
+        <p className="text-xs text-gray-500 mt-0.5">{recurringSub}</p>
       )}
-      {totalSub && (
-        <p className="text-xs text-orange-300/90 font-medium mt-0.5">{totalSub}</p>
+      {variableSub && (
+        <p className="text-xs text-amber-500/70 mt-0.5">{variableSub}</p>
       )}
     </div>
   )

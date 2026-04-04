@@ -2,7 +2,12 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { NextRequest, NextResponse } from 'next/server'
 import { read, utils } from 'xlsx'
-import { generateId } from '@/utils'
+
+import { createHash } from 'crypto'
+
+function deterministicId(cardLast4: string, date: string, merchant: string, amount: number, rowIndex: number): string {
+  return createHash('sha1').update(`${cardLast4}|${date}|${merchant}|${amount}|${rowIndex}`).digest('hex').slice(0, 16)
+}
 import type { Transaction } from '@/types'
 
 export const runtime = 'nodejs'
@@ -81,7 +86,7 @@ export async function POST(req: NextRequest) {
           const date = excelDateToISO(dateRaw)
 
           allTransactions.push({
-            id: generateId(),
+            id: deterministicId(cardLast4, date, merchant, chargeAmount, i),
             date,
             merchant,
             amount: chargeAmount,
@@ -99,14 +104,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Deduplicate by date + merchant + amount (in case same file uploaded twice)
-    const seen = new Set<string>()
-    const unique = allTransactions.filter(t => {
-      const key = `${t.date}|${t.merchant}|${t.amount}`
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+    // No dedup at parse time — identical rows in the same file are kept as-is.
+    // Dedup against already-saved transactions happens in map-transactions.
+    const unique = allTransactions
 
     return NextResponse.json({ transactions: unique })
   } catch (error) {

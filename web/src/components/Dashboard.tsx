@@ -27,6 +27,7 @@ import { t, tn } from '@/translations'
 interface DashboardProps {
   data: AppData
   onNavigate: (page: import('../types').Page) => void
+  txSummary: { byExpense: Record<string, Record<string, number>>; byCategory: Record<string, Record<string, number>> } | null
 }
 
 function computeMonthStats(
@@ -150,11 +151,19 @@ const tooltipStyle = {
   padding: '10px 14px'
 }
 const tooltipLabelStyle = { color: '#e5e7eb', fontWeight: 600, marginBottom: 4 }
-const tooltipItemStyle = { color: '#d1d5db' }
+
 const tooltipWrapperStyle = { outline: 'none' }
 const tooltipCursor = { fill: 'rgba(255,255,255,0.05)' }
 
-export function Dashboard({ data, onNavigate }: DashboardProps) {
+function rollingAvg(byMonth: Record<string, number>, months: number): number | null {
+  const sorted = Object.keys(byMonth).sort()
+  if (!sorted.length) return null
+  const recent = sorted.slice(-months)
+  const sum = recent.reduce((s, m) => s + byMonth[m], 0)
+  return sum / recent.length
+}
+
+export function Dashboard({ data, onNavigate, txSummary }: DashboardProps) {
   const { currency } = useCurrency()
   const { lang } = useLanguage()
 
@@ -204,7 +213,29 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
 
   const { net: monthlyNetIncome, gross: monthlyGrossIncome } = computeMonthlyIncome(data)
   const { total: monthlyExpenses, byCategory: expensesByCategory } = computeMonthlyExpenses(data)
-  const cashFlow = monthlyNetIncome > 0 ? monthlyNetIncome - monthlyExpenses : null
+
+  // Variable expense averages from transaction history
+  const variableExpenseIds = new Set((data.variableExpenses ?? []).map(e => e.id))
+  const avgVariableByCategory = (() => {
+    if (!txSummary) return {} as Record<string, number>
+    const result: Record<string, number> = {}
+    for (const [expenseId, byMonth] of Object.entries(txSummary.byExpense)) {
+      if (!variableExpenseIds.has(expenseId)) continue
+      const ve = (data.variableExpenses ?? []).find(e => e.id === expenseId)
+      if (!ve) continue
+      const avg = rollingAvg(byMonth, 12)
+      if (avg != null) result[ve.category] = (result[ve.category] ?? 0) + avg
+    }
+    for (const [cat, byMonth] of Object.entries(txSummary.byCategory)) {
+      const avg = rollingAvg(byMonth, 12)
+      if (avg != null) result[cat] = (result[cat] ?? 0) + avg
+    }
+    return result
+  })()
+  const avgVariableTotal = Object.values(avgVariableByCategory).reduce((s, v) => s + v, 0)
+
+  const totalExpenses = monthlyExpenses + avgVariableTotal
+  const cashFlow = monthlyNetIncome > 0 ? monthlyNetIncome - totalExpenses : null
   const savingsRate = monthlyNetIncome > 0 && cashFlow !== null ? (cashFlow / monthlyNetIncome) * 100 : null
   const hasIncomeOrExpenses = monthlyNetIncome > 0 || monthlyExpenses > 0
   const debtToAsset = currentAssets > 0 && currentLiabilities > 0 ? (currentLiabilities / currentAssets) * 100 : null
@@ -404,12 +435,25 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
             />
           )}
           {monthlyExpenses > 0 && (
-            <SummaryCard
-              label={t('dashboard.card.monthlyExpenses', lang)}
-              value={fmt(monthlyExpenses)}
-              icon={<Receipt size={18} />}
-              accent="red"
-            />
+            <div className="bg-[#14141f] border border-white/5 rounded-xl p-4 md:p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{t('dashboard.card.monthlyExpenses', lang)}</span>
+                <span className="p-1.5 rounded-md text-red-400 bg-red-500/10"><Receipt size={18} /></span>
+              </div>
+              <div className="text-xl md:text-2xl font-bold text-white tracking-tight">{fmt(totalExpenses > 0 ? totalExpenses : monthlyExpenses)}</div>
+              {avgVariableTotal > 0 && (
+                <>
+                  <div className="flex gap-0.5 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-red-500 rounded-s-full" style={{ width: `${(monthlyExpenses / totalExpenses) * 100}%` }} />
+                    <div className="bg-red-500/35 rounded-e-full flex-1" />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{t('dashboard.card.recurring', lang)} <span className="text-gray-300">{fmtShort(monthlyExpenses)}</span></span>
+                    <span>{t('dashboard.card.variable', lang)} <span className="text-gray-300">{fmtShort(avgVariableTotal)}</span></span>
+                  </div>
+                </>
+              )}
+            </div>
           )}
           {cashFlow !== null && (
             <SummaryCard
@@ -533,52 +577,80 @@ export function Dashboard({ data, onNavigate }: DashboardProps) {
             </ChartCard>
           )}
 
-          {expensesByCategory.length > 0 && (
-            <ChartCard title={t('dashboard.chart.expenseBreakdown', lang)}>
-              <div dir="ltr">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart
-                  data={expensesByCategory}
-                  layout="vertical"
-                  margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    tick={{ fill: '#6b7280', fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={fmtShort}
-                    width={60}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="category"
-                    tick={{ fill: '#9ca3af', fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={90}
-                    tickFormatter={(v: string) => v.charAt(0).toUpperCase() + v.slice(1)}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    wrapperStyle={tooltipWrapperStyle}
-                    labelStyle={tooltipLabelStyle}
-                    itemStyle={tooltipItemStyle}
-                    cursor={tooltipCursor}
-                    formatter={(v) => fmt(v as number)}
-                    labelFormatter={(label: string) => label.charAt(0).toUpperCase() + label.slice(1)}
-                  />
-                  <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
-                    {expensesByCategory.map((entry) => (
-                      <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] ?? '#6b7280'} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-              </div>
-            </ChartCard>
-          )}
+          {(expensesByCategory.length > 0 || Object.keys(avgVariableByCategory).length > 0) && (() => {
+            const allCats = [...new Set([
+              ...expensesByCategory.map(e => e.category),
+              ...Object.keys(avgVariableByCategory),
+            ])]
+            const chartData = allCats.map(cat => ({
+              category: cat,
+              amount: expensesByCategory.find(e => e.category === cat)?.amount ?? 0,
+              variable: avgVariableByCategory[cat] ?? 0,
+            })).sort((a, b) => (b.amount + b.variable) - (a.amount + a.variable))
+            return (
+              <ChartCard title={t('dashboard.chart.expenseBreakdown', lang)}>
+                <div dir="ltr">
+                <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 36)}>
+                  <BarChart
+                    data={chartData}
+                    layout="vertical"
+                    margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                    <XAxis
+                      type="number"
+                      tick={{ fill: '#6b7280', fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={fmtShort}
+                      width={60}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="category"
+                      tick={{ fill: '#9ca3af', fontSize: 11 }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={90}
+                      tickFormatter={(v: string) => v.charAt(0).toUpperCase() + v.slice(1)}
+                    />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '10px', padding: '10px 14px' }}
+                      wrapperStyle={tooltipWrapperStyle}
+                      labelStyle={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 6 }}
+                      cursor={tooltipCursor}
+                      labelFormatter={(label: string) => label.charAt(0).toUpperCase() + label.slice(1)}
+                      content={({ active, payload, label }) => {
+                        if (!active || !payload?.length) return null
+                        const recurring = (payload.find(p => p.dataKey === 'amount')?.value as number) ?? 0
+                        const variable = (payload.find(p => p.dataKey === 'variable')?.value as number) ?? 0
+                        const color = CATEGORY_COLORS[label] ?? '#6b7280'
+                        return (
+                          <div style={{ backgroundColor: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '10px 14px', minWidth: 160 }}>
+                            <p style={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 8 }}>{label.charAt(0).toUpperCase() + label.slice(1)}</p>
+                            {recurring > 0 && <p style={{ color, fontSize: 12, marginBottom: 4 }}>● {t('dashboard.card.recurring', lang)}: {fmt(recurring)}</p>}
+                            {variable > 0 && <p style={{ color: color + '99', fontSize: 12, marginBottom: 4 }}>● {t('dashboard.card.variable', lang)}: {fmt(variable)}</p>}
+                            {recurring > 0 && variable > 0 && <p style={{ color: '#e5e7eb', fontSize: 12, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 6, marginTop: 4 }}>{t('dashboard.card.combined', lang)}: {fmt(recurring + variable)}</p>}
+                          </div>
+                        )
+                      }}
+                    />
+                    <Bar dataKey="amount" stackId="a" radius={[0, 0, 0, 0]}>
+                      {chartData.map((entry) => (
+                        <Cell key={entry.category} fill={CATEGORY_COLORS[entry.category] ?? '#6b7280'} />
+                      ))}
+                    </Bar>
+                    <Bar dataKey="variable" stackId="a" radius={[0, 4, 4, 0]}>
+                      {chartData.map((entry) => (
+                        <Cell key={entry.category} fill={(CATEGORY_COLORS[entry.category] ?? '#6b7280') + '66'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                </div>
+              </ChartCard>
+            )
+          })()}
 
           {hasInvestments && (
             <>

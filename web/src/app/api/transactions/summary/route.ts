@@ -41,10 +41,10 @@ export async function GET() {
     if (tx.recurringExpenseId) {
       if (!byExpense[tx.recurringExpenseId]) byExpense[tx.recurringExpenseId] = {}
       byExpense[tx.recurringExpenseId][tx.month] = (byExpense[tx.recurringExpenseId][tx.month] ?? 0) + amt
-    } else if (tx.expenseCategory) {
-      // Only count in byCategory when not already mapped to a named expense
-      if (!byCategory[tx.expenseCategory]) byCategory[tx.expenseCategory] = {}
-      byCategory[tx.expenseCategory][tx.month] = (byCategory[tx.expenseCategory][tx.month] ?? 0) + amt
+    } else {
+      const key = tx.expenseCategory ?? 'unlinked'
+      if (!byCategory[key]) byCategory[key] = {}
+      byCategory[key][tx.month] = (byCategory[key][tx.month] ?? 0) + amt
     }
   }
 

@@ -70,6 +70,7 @@ export function Transactions({ data }: TransactionsProps) {
   const [cardFilter, setCardFilter] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [expenseFilter, setExpenseFilter] = useState<string | null>(null)
+  const [linkFilter, setLinkFilter] = useState<'all' | 'recurring' | 'variable' | 'unlinked'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const recurringExpenses: RecurringExpense[] = data.expenses ?? []
@@ -165,11 +166,20 @@ export function Transactions({ data }: TransactionsProps) {
     ?? variableExpenses.find(e => e.id === tx.recurringExpenseId)?.category
     ?? null
 
+  const matchesLinkFilter = (t: Transaction) => {
+    if (linkFilter === 'all') return true
+    if (linkFilter === 'unlinked') return !t.recurringExpenseId
+    if (linkFilter === 'recurring') return !!recurringExpenses.find(e => e.id === t.recurringExpenseId)
+    if (linkFilter === 'variable') return !!variableExpenses.find(e => e.id === t.recurringExpenseId)
+    return true
+  }
+
   const filtered = transactions.filter(t =>
     (filter === 'all' || t.mappingStatus === filter) &&
     (cardFilter === null || t.cardLast4 === cardFilter) &&
     (categoryFilter === null || effectiveCategory(t) === categoryFilter) &&
-    (expenseFilter === null || t.recurringExpenseId === expenseFilter)
+    (expenseFilter === null || t.recurringExpenseId === expenseFilter) &&
+    matchesLinkFilter(t)
   )
 
   const availableCategories = [...new Set(transactions.map(effectiveCategory).filter(Boolean))] as string[]
@@ -181,15 +191,20 @@ export function Transactions({ data }: TransactionsProps) {
           ?? variableExpenses.find(e => e.id === t.recurringExpenseId)
         if (!exp) return null
         if (categoryFilter && exp.category !== categoryFilter) return null
-        return [exp.id, exp.name] as [string, string]
+        return [exp.id, { name: exp.name, category: exp.category }] as [string, { name: string; category: string }]
       })
-      .filter((x): x is [string, string] => x !== null)
+      .filter((x): x is [string, { name: string; category: string }] => x !== null)
   ).entries()]
+
+  const availableExpensesByCategory = (Object.keys(CATEGORY_CONFIG) as ExpenseCategory[])
+    .map(cat => ({ cat, items: availableExpenses.filter(([, e]) => e.category === cat) }))
+    .filter(g => g.items.length > 0)
 
   const baseFiltered = transactions.filter(t =>
     (cardFilter === null || t.cardLast4 === cardFilter) &&
     (categoryFilter === null || effectiveCategory(t) === categoryFilter) &&
-    (expenseFilter === null || t.recurringExpenseId === expenseFilter)
+    (expenseFilter === null || t.recurringExpenseId === expenseFilter) &&
+    matchesLinkFilter(t)
   )
 
   const counts: Record<FilterStatus, number> = {
@@ -202,7 +217,7 @@ export function Transactions({ data }: TransactionsProps) {
 
   const totalAmount = filtered
     .filter(t => t.mappingStatus !== 'ignored')
-    .reduce((s, t) => s + t.amount, 0)
+    .reduce((s, t) => s + (t.overrideAmount ?? t.amount), 0)
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -327,29 +342,51 @@ export function Transactions({ data }: TransactionsProps) {
               ))}
             </div>
             {availableCategories.length > 0 && (
-              <select
-                value={categoryFilter ?? ''}
-                onChange={e => { setCategoryFilter(e.target.value || null); setExpenseFilter(null); }}
-                className={cn('bg-[#14141f] border text-xs rounded-lg px-2 py-1.5 focus:outline-none transition-colors', categoryFilter ? 'border-indigo-500/50 text-white font-medium' : 'border-white/8 text-slate-400')}
-              >
-                <option value="">All categories</option>
-                {availableCategories.map(c => (
-                  <option key={c} value={c}>{CATEGORY_CONFIG[c as ExpenseCategory]?.label ?? c}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={categoryFilter ?? ''}
+                  onChange={e => { setCategoryFilter(e.target.value || null); setExpenseFilter(null); }}
+                  className={`appearance-none bg-[#14141f] border border-white/8 rounded-lg text-xs font-medium text-slate-400 focus:outline-none transition-colors h-[38px] ${lang === 'he' ? 'pr-2 sm:pr-3 pl-7' : 'pl-2 sm:pl-3 pr-7'}`}
+                >
+                  <option value="">{t('tx.filter.allCategories', lang)}</option>
+                  {availableCategories.map(c => (
+                    <option key={c} value={c}>{CATEGORY_CONFIG[c as ExpenseCategory]?.label ?? c}</option>
+                  ))}
+                </select>
+                <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             )}
             {availableExpenses.length > 0 && (
+              <div className="relative">
+                <select
+                  value={expenseFilter ?? ''}
+                  onChange={e => setExpenseFilter(e.target.value || null)}
+                  className={`appearance-none bg-[#14141f] border border-white/8 rounded-lg text-xs font-medium text-slate-400 focus:outline-none transition-colors h-[38px] ${lang === 'he' ? 'pr-2 sm:pr-3 pl-7' : 'pl-2 sm:pl-3 pr-7'}`}
+                >
+                  <option value="">{t('tx.filter.allExpenses', lang)}</option>
+                  {availableExpensesByCategory.map(({ cat, items }) => (
+                    <optgroup key={cat} label={CATEGORY_CONFIG[cat].label}>
+                      {items.map(([id, e]) => (
+                        <option key={id} value={id}>{e.name}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+            )}
+            <div className="relative">
               <select
-                value={expenseFilter ?? ''}
-                onChange={e => { setExpenseFilter(e.target.value || null); }}
-                className={cn('bg-[#14141f] border text-xs rounded-lg px-2 py-1.5 focus:outline-none transition-colors', expenseFilter ? 'border-indigo-500/50 text-white font-medium' : 'border-white/8 text-slate-400')}
+                value={linkFilter}
+                onChange={e => { setLinkFilter(e.target.value as any); setExpenseFilter(null); }}
+                className={`appearance-none bg-[#14141f] border border-white/8 rounded-lg text-xs font-medium text-slate-400 focus:outline-none transition-colors h-[38px] ${lang === 'he' ? 'pr-2 sm:pr-3 pl-7' : 'pl-2 sm:pl-3 pr-7'}`}
               >
-                <option value="">All expenses</option>
-                {availableExpenses.map(([id, name]) => (
-                  <option key={id} value={id}>{name}</option>
+                {(['all', 'recurring', 'variable', 'unlinked'] as const).map(v => (
+                  <option key={v} value={v}>{t(`tx.linkFilter.${v}`, lang)}</option>
                 ))}
               </select>
-            )}
+              <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </div>
           </div>
           <span className="text-sm text-slate-400">
             {filtered.length} {filtered.length === 1 ? t('tx.count', lang) : t('tx.count.plural', lang)}
@@ -377,6 +414,15 @@ export function Transactions({ data }: TransactionsProps) {
         </div>
       ) : (
         <div className="bg-[#14141f] rounded-xl border border-white/8 divide-y divide-white/5">
+          <div className="hidden sm:flex items-center gap-3 px-4 py-2 border-b border-white/8">
+            <span className="text-[11px] text-slate-500 w-20 shrink-0">{t('tx.col.date', lang)}</span>
+            <span className="text-[11px] text-slate-500 flex-1 min-w-0">{t('tx.col.merchant', lang)}</span>
+            <span className="text-[11px] text-slate-500 w-44 shrink-0">{t('tx.col.expense', lang)}</span>
+            <span className="text-[11px] text-slate-500 w-36 shrink-0">{t('tx.col.status', lang)}</span>
+            <div className="text-[11px] text-slate-500 w-20 shrink-0 flex justify-end">{t('tx.col.amount', lang)}</div>
+            <span className="w-[14px] shrink-0" />
+          </div>
+
           {filtered.map(tx => (
             <TransactionRow
               key={tx.id}
@@ -410,9 +456,9 @@ interface TransactionRowProps {
 }
 
 function TransactionRow({ tx, recurringExpenses, variableExpenses, expanded, onToggle, onUpdate, onDelete, fmt, lang }: TransactionRowProps) {
-  const matchedExpense = recurringExpenses.find(e => e.id === tx.recurringExpenseId)
-    ?? variableExpenses.find(e => e.id === tx.recurringExpenseId)
   const matchedRecurring = recurringExpenses.find(e => e.id === tx.recurringExpenseId)
+  const matchedVariable = variableExpenses.find(e => e.id === tx.recurringExpenseId)
+  const matchedExpense = matchedRecurring ?? matchedVariable
   const amountMismatch = tx.mappingStatus === 'auto' && matchedRecurring != null && Math.abs(tx.amount - matchedRecurring.amount) > 10
   const displayAmount = tx.overrideAmount ?? tx.amount
 
@@ -443,7 +489,7 @@ function TransactionRow({ tx, recurringExpenses, variableExpenses, expanded, onT
         className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/3 transition-colors"
         onClick={onToggle}
       >
-        <span className="text-xs text-slate-500 w-20 shrink-0">{tx.date.slice(5)}</span>
+        <span className="text-xs text-slate-500 w-20 shrink-0">{tx.date.slice(8)}-{tx.date.slice(5, 7)}</span>
 
         <div className="flex-1 min-w-0">
           <p className="text-sm text-white truncate">{tx.merchant}</p>
@@ -453,21 +499,27 @@ function TransactionRow({ tx, recurringExpenses, variableExpenses, expanded, onT
           </div>
         </div>
 
-        <div className="hidden sm:block w-36 shrink-0">
+        <div className="hidden sm:block w-44 shrink-0 min-w-0">
           {matchedExpense ? (
-            <span className="text-xs text-indigo-400 flex items-center gap-1">
-              <Link2 size={10} />{matchedExpense.name}
-            </span>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex items-center gap-1 text-xs text-indigo-400 min-w-0">
+                <Link2 size={10} className="shrink-0" />
+                <span className="truncate min-w-0">{matchedExpense.name}</span>
+              </div>
+              <span className={cn('text-[10px] px-1 rounded w-fit', matchedRecurring ? 'bg-indigo-900/60 text-indigo-300' : 'bg-purple-900/60 text-purple-300')}>
+                {matchedRecurring ? t('tx.badge.recurring', lang) : t('tx.badge.variable', lang)}
+              </span>
+            </div>
           ) : tx.expenseCategory ? (
             <CategoryBadge category={tx.expenseCategory} />
           ) : null}
         </div>
 
-        <div className="hidden sm:block shrink-0">
+        <div className="hidden sm:block w-36 shrink-0">
           <StatusBadge status={tx.mappingStatus} lang={lang} />
         </div>
 
-        <div className="text-right shrink-0 w-24">
+        <div className="text-right shrink-0 w-20">
           <div className="flex items-center justify-end gap-1.5">
             {amountMismatch && (
               <span title={`Expected ${fmt(matchedRecurring!.amount)}`} className="text-amber-400 text-xs font-bold leading-none">!</span>
@@ -486,64 +538,79 @@ function TransactionRow({ tx, recurringExpenses, variableExpenses, expanded, onT
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-slate-400 mb-1 block">{t('tx.map.expense', lang)}</label>
-              <select
-                value={recurringExpenses.find(e => e.id === tx.recurringExpenseId) ? tx.recurringExpenseId ?? '' : ''}
-                onChange={e => {
-                  const re = recurringExpenses.find(r => r.id === e.target.value)
-                  onUpdate({
-                    recurringExpenseId: e.target.value || null,
-                    mappingStatus: e.target.value ? 'manual' : (variableExpenses.find(v => v.id === tx.recurringExpenseId) ? 'manual' : 'unmapped'),
-                    expenseCategory: re ? re.category : null,
-                  })
-                }}
-                className="w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg px-3 py-2"
-              >
-                <option value="">{t('tx.map.none', lang)}</option>
-                {recurringExpenses.filter(e => e.active).map(e => (
-                  <option key={e.id} value={e.id}>{e.name} (₪{e.amount})</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={recurringExpenses.find(e => e.id === tx.recurringExpenseId) ? tx.recurringExpenseId ?? '' : ''}
+                  onChange={e => {
+                    const re = recurringExpenses.find(r => r.id === e.target.value)
+                    onUpdate({
+                      recurringExpenseId: e.target.value || null,
+                      mappingStatus: e.target.value ? 'manual' : (variableExpenses.find(v => v.id === tx.recurringExpenseId) ? 'manual' : 'unmapped'),
+                      expenseCategory: re ? re.category : null,
+                    })
+                  }}
+                  className={`appearance-none w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg py-2 ${lang === 'he' ? 'pr-3 pl-7' : 'pl-3 pr-7'}`}
+                >
+                  <option value="">{t('tx.map.none', lang)}</option>
+                  {(Object.keys(CATEGORY_CONFIG) as ExpenseCategory[])
+                    .filter(cat => recurringExpenses.some(e => e.active && e.category === cat))
+                    .map(cat => (
+                      <optgroup key={cat} label={CATEGORY_CONFIG[cat].label}>
+                        {recurringExpenses.filter(e => e.active && e.category === cat).map(e => (
+                          <option key={e.id} value={e.id}>{e.name} (₪{e.amount})</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                </select>
+                <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             </div>
             <div>
               <label className="text-xs text-slate-400 mb-1 block">{t('tx.map.variable', lang)}</label>
-              <select
-                value={variableExpenses.find(e => e.id === tx.recurringExpenseId) ? tx.recurringExpenseId ?? '' : ''}
-                onChange={e => {
-                  const ve = variableExpenses.find(v => v.id === e.target.value)
-                  onUpdate({
-                    recurringExpenseId: e.target.value || null,
-                    mappingStatus: e.target.value ? 'manual' : (recurringExpenses.find(r => r.id === tx.recurringExpenseId) ? 'manual' : 'unmapped'),
-                    expenseCategory: ve ? ve.category : null,
-                  })
-                }}
-                className="w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg px-3 py-2"
-              >
-                <option value="">{t('tx.map.none', lang)}</option>
-                {(Object.keys(CATEGORY_CONFIG) as ExpenseCategory[])
-                  .filter(cat => variableExpenses.some(e => e.active && e.category === cat))
-                  .map(cat => (
-                    <optgroup key={cat} label={CATEGORY_CONFIG[cat].label}>
-                      {variableExpenses.filter(e => e.active && e.category === cat).map(e => (
-                        <option key={e.id} value={e.id}>{e.name}</option>
-                      ))}
-                    </optgroup>
-                  ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={variableExpenses.find(e => e.id === tx.recurringExpenseId) ? tx.recurringExpenseId ?? '' : ''}
+                  onChange={e => {
+                    const ve = variableExpenses.find(v => v.id === e.target.value)
+                    onUpdate({
+                      recurringExpenseId: e.target.value || null,
+                      mappingStatus: e.target.value ? 'manual' : (recurringExpenses.find(r => r.id === tx.recurringExpenseId) ? 'manual' : 'unmapped'),
+                      expenseCategory: ve ? ve.category : null,
+                    })
+                  }}
+                  className={`appearance-none w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg py-2 ${lang === 'he' ? 'pr-3 pl-7' : 'pl-3 pr-7'}`}
+                >
+                  <option value="">{t('tx.map.none', lang)}</option>
+                  {(Object.keys(CATEGORY_CONFIG) as ExpenseCategory[])
+                    .filter(cat => variableExpenses.some(e => e.active && e.category === cat))
+                    .map(cat => (
+                      <optgroup key={cat} label={CATEGORY_CONFIG[cat].label}>
+                        {variableExpenses.filter(e => e.active && e.category === cat).map(e => (
+                          <option key={e.id} value={e.id}>{e.name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                </select>
+                <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             </div>
 
             <div>
               <label className="text-xs text-slate-400 mb-1 block">{t('tx.map.category', lang)}</label>
-              <select
-                value={tx.expenseCategory ?? ''}
-                disabled={!!recurringExpenses.find(e => e.id === tx.recurringExpenseId) || !!variableExpenses.find(e => e.id === tx.recurringExpenseId)}
-                onChange={e => onUpdate({ expenseCategory: e.target.value || null })}
-                className="w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg px-3 py-2 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <option value="">{t('tx.map.none', lang)}</option>
-                {(Object.keys(CATEGORY_CONFIG) as ExpenseCategory[]).map(c => (
-                  <option key={c} value={c}>{CATEGORY_CONFIG[c].label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={tx.expenseCategory ?? ''}
+                  disabled={!!recurringExpenses.find(e => e.id === tx.recurringExpenseId) || !!variableExpenses.find(e => e.id === tx.recurringExpenseId)}
+                  onChange={e => onUpdate({ expenseCategory: e.target.value || null })}
+                  className={`appearance-none w-full bg-[#09090f] border border-white/10 text-slate-300 text-xs rounded-lg py-2 disabled:opacity-40 disabled:cursor-not-allowed ${lang === 'he' ? 'pr-3 pl-7' : 'pl-3 pr-7'}`}
+                >
+                  <option value="">{t('tx.map.none', lang)}</option>
+                  {(Object.keys(CATEGORY_CONFIG) as ExpenseCategory[]).map(c => (
+                    <option key={c} value={c}>{CATEGORY_CONFIG[c].label}</option>
+                  ))}
+                </select>
+                <svg className={`pointer-events-none absolute top-1/2 -translate-y-1/2 text-slate-400 ${lang === 'he' ? 'left-2' : 'right-2'}`} width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
             </div>
           </div>
 

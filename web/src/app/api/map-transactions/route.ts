@@ -107,41 +107,33 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    // Deduplicate against existing transactions in DB (same date+merchant+amount)
-    const existingRaw = await prisma.transaction.findMany({
-      where: { userId: effectiveUserId },
-      select: { date: true, merchant: true, amount: true }
+    // IDs are deterministic (from parse-cal), so skipDuplicates handles re-uploads safely.
+    // Two real identical rows in the same file get different IDs (different row index), so both are saved.
+    const { count } = await prisma.transaction.createMany({
+      skipDuplicates: true,
+      data: mapped.map(t => ({
+        id: t.id,
+        userId: effectiveUserId,
+        date: t.date,
+        merchant: t.merchant,
+        amount: t.amount,
+        transactionAmount: t.transactionAmount ?? null,
+        type: t.type,
+        calCategory: t.calCategory ?? null,
+        cardLast4: t.cardLast4 ?? null,
+        accountLabel: t.accountLabel ?? null,
+        notes: t.notes ?? null,
+        expenseCategory: t.expenseCategory ?? null,
+        recurringExpenseId: t.recurringExpenseId ?? null,
+        mappingStatus: t.mappingStatus,
+        month: t.month,
+      })),
     })
-    const existingKeys = new Set(existingRaw.map(t => `${t.date}|${t.merchant}|${t.amount}`))
-
-    const newTransactions = mapped.filter(t => !existingKeys.has(`${t.date}|${t.merchant}|${t.amount}`))
-
-    if (newTransactions.length > 0) {
-      await prisma.transaction.createMany({
-        data: newTransactions.map(t => ({
-          id: t.id,
-          userId: effectiveUserId,
-          date: t.date,
-          merchant: t.merchant,
-          amount: t.amount,
-          transactionAmount: t.transactionAmount ?? null,
-          type: t.type,
-          calCategory: t.calCategory ?? null,
-          cardLast4: t.cardLast4 ?? null,
-          accountLabel: t.accountLabel ?? null,
-          notes: t.notes ?? null,
-          expenseCategory: t.expenseCategory ?? null,
-          recurringExpenseId: t.recurringExpenseId ?? null,
-          mappingStatus: t.mappingStatus,
-          month: t.month,
-        }))
-      })
-    }
 
     return NextResponse.json({
       mapped,
-      saved: newTransactions.length,
-      duplicates: mapped.length - newTransactions.length,
+      saved: count,
+      duplicates: mapped.length - count,
     })
   } catch (error) {
     console.error('map-transactions error:', error)

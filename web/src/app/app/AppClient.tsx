@@ -36,6 +36,7 @@ export function AppClient({ user }: AppClientProps) {
   const {
     data,
     loading,
+    txSummary,
     saveAccounts,
     saveSnapshots,
     saveFamilyMembers,
@@ -160,7 +161,7 @@ export function AppClient({ user }: AppClientProps) {
 
         <div className={`flex-1 ${page === 'insights' ? 'overflow-hidden relative' : 'overflow-y-auto'}`}>
           {page === 'dashboard' && (
-            <Dashboard data={data} onNavigate={handleNavigate} />
+            <Dashboard data={data} onNavigate={handleNavigate} txSummary={txSummary} />
           )}
           {page === 'snapshot' && (
             <SnapshotEntry
@@ -195,6 +196,7 @@ export function AppClient({ user }: AppClientProps) {
               familyMembers={data.familyMembers || []}
               onSave={saveExpenses}
               onSaveVariable={saveVariableExpenses}
+              txSummary={txSummary}
             />
           )}
           {page === 'income' && (
