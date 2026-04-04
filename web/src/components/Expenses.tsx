@@ -87,12 +87,20 @@ function calculateCategoryData(expenses: RecurringExpense[]) {
     .sort((a, b) => b.amount - a.amount)
 }
 
-// Rolling average helper: given monthlyTotals map, compute avg over last N months
+// Rolling average — returns null if fewer than `months` months of data exist (for labeled avg columns)
 function rollingAvg(byMonth: Record<string, number>, months: number): number | null {
   const sorted = Object.keys(byMonth).sort().slice(-months)
   if (sorted.length < months) return null
   const sum = sorted.reduce((s, m) => s + byMonth[m], 0)
   return sum / months
+}
+
+// Best-effort average over whatever data exists, up to `months` months (for chart/summary)
+function rollingAvgBestEffort(byMonth: Record<string, number>, months: number): number | null {
+  const sorted = Object.keys(byMonth).sort().slice(-months)
+  if (sorted.length === 0) return null
+  const sum = sorted.reduce((s, m) => s + byMonth[m], 0)
+  return sum / sorted.length
 }
 
 export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyMembers, onSave, onSaveVariable }: ExpensesProps) {
@@ -153,23 +161,23 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
         combined[month] = (combined[month] ?? 0) + amt
       }
     }
-    return rollingAvg(combined, 12)
+    return rollingAvgBestEffort(combined, 12)
   })()
 
-  // Per-category 12m avg for chart stacking (mapped variable expenses + unmapped)
+  // Per-category avg for chart stacking (mapped variable expenses + unmapped)
   const varAvgByCategory = (() => {
     if (!txSummary) return {} as Record<string, number>
     const result: Record<string, number> = {}
     // byCategory = unmapped spend per category
     for (const [cat, byMonth] of Object.entries(txSummary.byCategory)) {
-      const avg = rollingAvg(byMonth, 12)
+      const avg = rollingAvgBestEffort(byMonth, 12)
       if (avg != null) result[cat] = (result[cat] ?? 0) + avg
     }
     // byExpense = mapped variable expenses; use their category from variableExpenses list
     for (const ve of variableExpenses) {
       const byMonth = txSummary.byExpense[ve.id]
       if (!byMonth) continue
-      const avg = rollingAvg(byMonth, 12)
+      const avg = rollingAvgBestEffort(byMonth, 12)
       if (avg != null) result[ve.category] = (result[ve.category] ?? 0) + avg
     }
     return result
