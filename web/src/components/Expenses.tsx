@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Plus, Pencil, Trash2, X, Check,
   Home, Baby, RefreshCw, Shield, Zap, Car, PawPrint, MoreHorizontal,
-  ToggleLeft, ToggleRight, ShoppingCart, Sparkles, TrendingUp
+  ToggleLeft, ToggleRight, ShoppingCart, Sparkles, TrendingUp, AlertTriangle
 } from 'lucide-react'
 import {
   ResponsiveContainer,
@@ -114,6 +114,7 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null)
+  const [ignoredDrift, setIgnoredDrift] = useState<Set<string>>(new Set())
 
   // Variable expenses state
   const [showVarModal, setShowVarModal] = useState(false)
@@ -202,6 +203,36 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
     },
     {} as Record<ExpenseCategory, RecurringExpense[]>
   )
+
+  // Find last month that has any recurring expense transaction data
+  const lastTxMonth = (() => {
+    if (!txSummary) return null
+    let latest = ''
+    for (const byMonth of Object.values(txSummary.byExpense)) {
+      for (const month of Object.keys(byMonth)) {
+        if (month > latest) latest = month
+      }
+    }
+    return latest || null
+  })()
+
+  // Per-expense drift: { expenseId -> { actual, set, pctDiff } }
+  const driftWarnings = (() => {
+    if (!txSummary || !lastTxMonth) return {} as Record<string, { actual: number; set: number; pct: number }>
+    const result: Record<string, { actual: number; set: number; pct: number }> = {}
+    for (const expense of expenses) {
+      if (!expense.active) continue
+      if (ignoredDrift.has(expense.id)) continue
+      const byMonth = txSummary.byExpense[expense.id]
+      if (!byMonth || byMonth[lastTxMonth] == null) continue
+      const actual = byMonth[lastTxMonth]
+      const set = monthlyAmount(expense)
+      if (set === 0) continue
+      const pct = Math.abs((actual - set) / set) * 100
+      if (pct > 10) result[expense.id] = { actual, set, pct }
+    }
+    return result
+  })()
 
   function openAdd() {
     setEditingId(null)
@@ -575,6 +606,44 @@ export function Expenses({ expenses, variableExpenses, familyMembers: rawFamilyM
                           {expense.notes && (
                             <p className="text-xs text-gray-600 mt-0.5 truncate">{expense.notes}</p>
                           )}
+                          {driftWarnings[expense.id] && (() => {
+                            const d = driftWarnings[expense.id]
+                            const msg = t('expenses.drift.warning', lang)
+                              .replace('{pct}', Math.round(d.pct).toString())
+                              .replace('{actual}', fmt(d.actual))
+                              .replace('{set}', fmt(d.set))
+                            return (
+                              <div className="flex items-start gap-1.5 mt-1.5">
+                                <AlertTriangle size={11} className="text-amber-400 shrink-0 mt-0.5" />
+                                <span className="text-[11px] text-amber-400 leading-snug">{msg}</span>
+                                <span className="text-amber-600 shrink-0">·</span>
+                                <button
+                                  onClick={() => {
+                                    setEditingId(expense.id)
+                                    setForm({
+                                      name: expense.name,
+                                      amount: String(expense.billingCycle === 'yearly' ? d.actual * 12 : d.actual),
+                                      category: expense.category,
+                                      billingCycle: expense.billingCycle,
+                                      owner: expense.owner ?? '',
+                                      notes: expense.notes ?? ''
+                                    })
+                                    setShowModal(true)
+                                  }}
+                                  className="text-[11px] text-amber-400 hover:text-amber-200 underline underline-offset-2 transition-colors shrink-0"
+                                >
+                                  {t('expenses.drift.update', lang)}
+                                </button>
+                                <span className="text-amber-600 shrink-0">·</span>
+                                <button
+                                  onClick={() => setIgnoredDrift(prev => new Set([...prev, expense.id]))}
+                                  className="text-[11px] text-amber-600 hover:text-amber-400 transition-colors shrink-0"
+                                >
+                                  {t('expenses.drift.ignore', lang)}
+                                </button>
+                              </div>
+                            )
+                          })()}
                         </div>
 
                         <div className="flex items-center gap-4 ml-4 shrink-0">
