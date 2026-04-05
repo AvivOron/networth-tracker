@@ -12,6 +12,7 @@ import {
   LineChart,
   CreditCard,
   Building2,
+  Flame,
   X,
   ChevronRight,
   ChevronLeft,
@@ -137,6 +138,16 @@ const TOUR_STEPS: TourStep[] = [
     body: {
       en: 'Get personalised financial advice from Claude AI. It reviews your accounts, history, income, and expenses to give you actionable recommendations.',
       he: 'קבל עצות פיננסיות מותאמות אישית מ-Claude AI. הוא סוקר את החשבונות, ההיסטוריה, ההכנסות וההוצאות שלך ומספק המלצות מעשיות.',
+    },
+  },
+  {
+    page: 'fire',
+    icon: Flame,
+    navId: 'tour-nav-fire',
+    title: { en: 'FIRE Calculator', he: 'מחשבון FIRE' },
+    body: {
+      en: 'Find your Financial Independence number. Based on your expenses and the 4% rule, it tells you exactly how much you need to retire early — and how many years away you are.',
+      he: 'גלה את מספר העצמאות הפיננסית שלך. על בסיס ההוצאות שלך וכלל 4%, המחשבון אומר לך בדיוק כמה צריך כדי לפרוש מוקדם — ובעוד כמה שנים.',
     },
   },
 ]

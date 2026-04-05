@@ -154,6 +154,7 @@ export type Page =
   | 'transactions'
   | 'variable-expenses'
   | 'properties'
+  | 'fire'
   | 'settings'
 
 export interface Investment {

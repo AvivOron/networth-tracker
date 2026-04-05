@@ -14,6 +14,7 @@ import { Projections } from '@/components/Projections'
 import { Investments } from '@/components/Investments'
 import { Transactions } from '@/components/Transactions'
 import { Properties } from '@/components/Properties'
+import { FireCalculator } from '@/components/FireCalculator'
 import { OnboardingModal } from '@/components/OnboardingModal'
 import { TourOverlay } from '@/components/TourOverlay'
 import { useData } from '@/hooks/useData'
@@ -230,6 +231,9 @@ export function AppClient({ user }: AppClientProps) {
               onUpdate={updateProperty}
               onDelete={deleteProperty}
             />
+          )}
+          {page === 'fire' && (
+            <FireCalculator data={data} txSummary={txSummary} />
           )}
           {page === 'settings' && (
             <Settings data={data} onSaveFamilyMembers={saveFamilyMembers} />

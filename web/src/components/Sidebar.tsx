@@ -16,7 +16,8 @@ import {
   Loader2,
   LineChart,
   CreditCard,
-  Building2
+  Building2,
+  Flame
 } from 'lucide-react'
 import { Page } from '../types'
 import { cn } from '../utils'
@@ -39,6 +40,7 @@ interface SidebarProps {
 
 type TrackingPage = 'dashboard' | 'accounts' | 'snapshot' | 'history' | 'projections' | 'investments' | 'properties'
 type ExpensePage = 'expenses' | 'income' | 'insights' | 'transactions'
+type ToolPage = 'fire'
 type SettingPage = 'settings'
 
 const trackingLabelMap: Record<TrackingPage, string> = {
@@ -56,6 +58,10 @@ const expenseLabelMap: Record<ExpensePage, string> = {
   'income': 'nav.income',
   'insights': 'nav.insights',
   'transactions': 'nav.transactions'
+}
+
+const toolLabelMap: Record<ToolPage, string> = {
+  'fire': 'nav.fire',
 }
 
 const settingLabelMap: Record<SettingPage, string> = {
@@ -77,6 +83,10 @@ const expenseItems: { id: ExpensePage; icon: React.ElementType }[] = [
   { id: 'transactions', icon: CreditCard },
   { id: 'income', icon: TrendingUp },
   { id: 'insights', icon: Sparkles }
+]
+
+const toolItems: { id: ToolPage; icon: React.ElementType }[] = [
+  { id: 'fire', icon: Flame },
 ]
 
 const settingItems: { id: SettingPage; icon: React.ElementType }[] = [
@@ -182,6 +192,31 @@ export function Sidebar({ page, onNavigate, open, isDemo, onRestartTour, user }:
               >
                 <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
                 {t(expenseLabelMap[id], lang)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tools Section */}
+        <div className="pt-2 border-t border-white/5">
+          <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide px-3 py-2 mb-2">
+            {t('nav.section.tools', lang)}
+          </h3>
+          <div className="space-y-0.5">
+            {toolItems.map(({ id, icon: Icon }) => (
+              <button
+                key={id}
+                id={`tour-nav-${id}`}
+                onClick={() => onNavigate(id)}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150',
+                  page === id
+                    ? 'bg-indigo-500/15 text-indigo-300'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'
+                )}
+              >
+                <Icon size={16} className={page === id ? 'text-indigo-400' : 'text-gray-500'} />
+                {t(toolLabelMap[id], lang)}
               </button>
             ))}
           </div>

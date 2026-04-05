@@ -13,6 +13,7 @@ import {
   RefreshCw,
   LineChart,
   PieChart,
+  Flame,
 } from 'lucide-react'
 import { cn } from '@/utils'
 
@@ -58,6 +59,11 @@ const features = [
     description: { en: 'Forecast your net worth years ahead. Model different return rates, monthly deposits, and the real cost of fees over time.', he: 'חזה את שווי הנטו שלך שנים קדימה. בחן שיעורי תשואה שונים, הפקדות חודשיות והשפעת דמי הניהול לאורך זמן.' },
   },
   {
+    icon: Flame,
+    title:       { en: 'FIRE Calculator',           he: 'מחשבון FIRE' },
+    description: { en: 'Calculate your Financial Independence number using the 4% rule. See how many years until you can retire early — with Lean, Fat, and Coast FIRE variants.', he: 'חשב את מספר העצמאות הפיננסית שלך לפי כלל 4%. ראה כמה שנים עד שתוכל לפרוש מוקדם — עם גרסאות Lean, Fat ו-Coast FIRE.' },
+  },
+  {
     icon: BrainCircuit,
     title:       { en: 'AI-powered insights',       he: 'תובנות מבוססות AI' },
     description: { en: 'Plain-language analysis of your finances — trends, savings rate, and actionable suggestions from Claude AI.', he: 'ניתוח פיננסי בשפה פשוטה — מגמות, שיעור חיסכון והמלצות מעשיות מ-Claude AI.' },
@@ -66,11 +72,6 @@ const features = [
     icon: Users,
     title:       { en: 'Household sharing',         he: 'שיתוף משפחתי' },
     description: { en: 'Invite a partner to share one dashboard. Organise accounts, income, and expenses by family member.', he: 'הזמן בן/בת זוג לשתף לוח בקרה אחד. ארגן חשבונות, הכנסות והוצאות לפי בן משפחה.' },
-  },
-  {
-    icon: RefreshCw,
-    title:       { en: 'Multi-currency',            he: 'ריבוי מטבעות' },
-    description: { en: 'Switch between NIS (₪) and USD ($) with automatic conversion across all views.', he: 'עבור בין ₪ ל-$ עם המרה אוטומטית בכל התצוגות.' },
   },
   {
     icon: ShieldCheck,
