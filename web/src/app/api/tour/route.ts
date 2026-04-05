@@ -74,6 +74,8 @@ function mockTransactions(userId: string) {
     rowsByMonth[mi].map((r, i) => {
       const [y, m] = month.split('-').map(Number)
       const date = `${y}-${String(m).padStart(2, '0')}-${String(r.day).padStart(2, '0')}`
+      const rawExpenseId: string | undefined = (r as any).recurringExpenseId
+      const isVariable = rawExpenseId?.startsWith('vexp-')
       return {
         id: `demo-tx-${mi}-${i}`,
         userId,
@@ -84,7 +86,8 @@ function mockTransactions(userId: string) {
         calCategory: r.calCategory || null,
         cardLast4: i % 2 === 0 ? '1234' : '5678',
         accountLabel: 'הפועלים 640-10524',
-        recurringExpenseId: (r as any).recurringExpenseId ?? null,
+        recurringExpenseId: isVariable ? null : (rawExpenseId ?? null),
+        variableExpenseId: isVariable ? rawExpenseId : null,
         expenseCategory: (r as any).expenseCategory ?? null,
         mappingStatus: r.mappingStatus,
         importedAt: new Date(),
