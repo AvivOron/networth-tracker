@@ -428,7 +428,7 @@ function StatCard({
         {tooltip && (
           <span className="group relative">
             <Info size={11} className="text-gray-700 cursor-help" />
-            <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 hidden group-hover:block w-52 text-[10px] text-gray-400 bg-[#1e1e30] border border-white/10 rounded-lg px-2.5 py-1.5 z-10 shadow-lg">
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-52 text-[10px] text-gray-400 bg-[#1e1e30] border border-white/10 rounded-lg px-2.5 py-1.5 z-10 shadow-lg">
               {tooltip}
             </span>
           </span>
