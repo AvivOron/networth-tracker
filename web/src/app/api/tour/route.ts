@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { saveAppData } from '@/lib/data'
 import { generateMockData } from '@/lib/tour-data'
 import { DEMO_USER_EMAIL } from '@/lib/auth'
+import { isSecureAuthCookie, sessionCookieName } from '@/lib/auth-cookies'
 
 function mockTransactions(userId: string) {
   const today = new Date()
@@ -181,14 +182,9 @@ export async function GET(request: Request) {
       }
     })
 
-    const cookieName =
-      process.env.NODE_ENV === 'production'
-        ? '__Secure-next-auth.session-token'
-        : 'next-auth.session-token';
-
-    response.cookies.set(cookieName, token, {
+    response.cookies.set(sessionCookieName, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecureAuthCookie,
       sameSite: 'lax',
       maxAge: 24 * 60 * 60,
       path: '/',

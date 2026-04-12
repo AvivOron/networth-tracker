@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
+import { sessionCookieName } from '@/lib/auth-cookies'
 
 const secret = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || '')
 
 export async function middleware(request: NextRequest) {
-  const token = request.cookies.get('next-auth.session-token')?.value
+  const token = request.cookies.get(sessionCookieName)?.value
 
   // If no token, redirect to signin
   if (!token) {

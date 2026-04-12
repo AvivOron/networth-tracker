@@ -2,16 +2,24 @@ import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
+import {
+  callbackCookieName,
+  csrfCookieName,
+  isSecureAuthCookie,
+  pkceCookieName,
+  sessionCookieName,
+  stateCookieName,
+} from './auth-cookies'
 
 export const DEMO_USER_EMAIL = 'tour-demo@finance-hub.local'
 
 export const authOptions: NextAuthOptions = {
   cookies: {
-    sessionToken: { name: '__Secure-finance.session-token', options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true } },
-    callbackUrl: { name: '__Secure-finance.callback-url', options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true } },
-    csrfToken: { name: '__Host-finance.csrf-token', options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true } },
-    pkceCodeVerifier: { name: '__Secure-finance.pkce.code_verifier', options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true } },
-    state: { name: '__Secure-finance.state', options: { httpOnly: true, sameSite: 'lax', path: '/', secure: true } },
+    sessionToken: { name: sessionCookieName, options: { httpOnly: true, sameSite: 'lax', path: '/', secure: isSecureAuthCookie } },
+    callbackUrl: { name: callbackCookieName, options: { httpOnly: true, sameSite: 'lax', path: '/', secure: isSecureAuthCookie } },
+    csrfToken: { name: csrfCookieName, options: { httpOnly: true, sameSite: 'lax', path: '/', secure: isSecureAuthCookie } },
+    pkceCodeVerifier: { name: pkceCookieName, options: { httpOnly: true, sameSite: 'lax', path: '/', secure: isSecureAuthCookie } },
+    state: { name: stateCookieName, options: { httpOnly: true, sameSite: 'lax', path: '/', secure: isSecureAuthCookie } },
   },
   adapter: PrismaAdapter(prisma),
   providers: [
