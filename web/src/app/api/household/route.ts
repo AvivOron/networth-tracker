@@ -36,7 +36,7 @@ export async function GET() {
       status: 'owner',
       householdId: owned.id,
       inviteToken: owned.inviteToken,
-      members: owned.members.map((m) => ({
+      members: owned.members.map((m: { user: { id: string; name: string | null; email: string | null; image: string | null }; joinedAt: Date }) => ({
         id: m.user.id,
         name: m.user.name,
         email: m.user.email,
