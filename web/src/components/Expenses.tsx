@@ -71,14 +71,6 @@ function calculateCategoryData(expenses: RecurringExpense[], categoryConfig: Cat
     .sort((a, b) => b.amount - a.amount)
 }
 
-// Rolling average — returns null if fewer than `months` months of data exist (for labeled avg columns)
-function rollingAvg(byMonth: Record<string, number>, months: number): number | null {
-  const sorted = Object.keys(byMonth).sort().slice(-months)
-  if (sorted.length < months) return null
-  const sum = sorted.reduce((s, m) => s + byMonth[m], 0)
-  return sum / months
-}
-
 // Best-effort average over whatever data exists, up to `months` months (for chart/summary)
 function rollingAvgBestEffort(byMonth: Record<string, number>, months: number): number | null {
   const sorted = Object.keys(byMonth).sort().slice(-months)
@@ -928,9 +920,9 @@ function VariableExpenseRow({
 }) {
   const months = Object.keys(byMonth).sort()
   const thisMonth = byMonth[months[months.length - 1]]
-  const avg3 = rollingAvg(byMonth, 3)
-  const avg6 = rollingAvg(byMonth, 6)
-  const avg12 = rollingAvg(byMonth, 12)
+  const avg3 = rollingAvgBestEffort(byMonth, 3)
+  const avg6 = rollingAvgBestEffort(byMonth, 6)
+  const avg12 = rollingAvgBestEffort(byMonth, 12)
   return (
     <div className="flex items-center gap-4 px-5 py-3.5 group">
       <div className="flex-1 min-w-0">
